@@ -11,11 +11,11 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-6">
-      <header className="flex items-center justify-between">
+    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6">
+      <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">わくわくの実 管理</h1>
-        <form action={signOut}>
-          <span className="mr-3 text-sm text-zinc-500">{String(data.claims.email ?? "")}</span>
+        <form action={signOut} className="flex items-center">
+          <span className="mr-3 max-w-48 truncate text-sm text-zinc-500">{String(data.claims.email ?? "")}</span>
           <button className="rounded-md border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
             ログアウト
           </button>

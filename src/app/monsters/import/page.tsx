@@ -17,7 +17,7 @@ const COLUMN_HELP: { column: string; alias: string; description: string }[] = [
 
 export default function ImportOwnedMonstersPage() {
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
       <header>
         <Link href="/monsters" className="text-sm text-zinc-500 hover:underline">← 所持キャラ</Link>
         <h1 className="text-2xl font-bold">所持データを CSV から取り込む</h1>

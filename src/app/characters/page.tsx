@@ -32,7 +32,7 @@ export default async function CharactersPage({ searchParams }: CharactersPagePro
   if (error) throw new Error(`キャラマスタの取得に失敗しました: ${error.message}`);
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-6">
+    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link href="/" className="text-sm text-zinc-500 hover:underline">← ホーム</Link>

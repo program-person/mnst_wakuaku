@@ -55,5 +55,5 @@ DBスキーマは `supabase/migrations/` にある。Supabase ダッシュボー
 - [x] キャラマスタの CSV インポート / エクスポート（`/characters`。UTF-8 / Shift_JIS 自動判別、日本語ヘッダ可、図鑑Noで upsert）
 - [x] 所持データ（個体・実・等級）の CSV インポート / エクスポート（`/monsters/import`、`/monsters/export`。エクスポートした形式をそのまま再取り込み可）
 - [x] 被り方針のユーザー上書きUI、同キャラ判定モードの切り替えUI（`/settings`）
-- [ ] PWA 対応（スマホでプレイ中に開く）
+- [x] PWA 対応（ホーム画面に追加して単独アプリとして起動。オフライン対応は無し）
 - [ ] スクショからの OCR 入力

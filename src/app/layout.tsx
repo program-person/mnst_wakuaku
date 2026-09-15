@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { APP_DESCRIPTION, APP_NAME, THEME_COLOR } from "@/lib/app-config";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "わくわくの実 管理",
-  description: "モンストのわくわくの実を同キャラ複数体で被らないよう管理する",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
+  applicationName: APP_NAME,
+  // iOS はホーム画面追加時に manifest ではなくこちらを見る
+  appleWebApp: {
+    capable: true,
+    title: APP_NAME,
+    // black-translucent は画面がステータスバーの下に潜り、safe-area の余白対応が要るので避ける
+    statusBarStyle: "black",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: THEME_COLOR,
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

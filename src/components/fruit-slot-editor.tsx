@@ -98,41 +98,43 @@ export function FruitSlotEditor({
           const holders = slot ? siblingsHolding(slot.fruitTypeId) : [];
           const warn = holders.length > 0 && slot && duplicatePolicies[slot.fruitTypeId] === "avoid";
           return (
-            <li key={slotIndex}>
+            <li
+              key={slotIndex}
+              className={`flex items-stretch rounded-lg border ${
+                isActive
+                  ? "border-zinc-900 ring-2 ring-zinc-900/20 dark:border-zinc-100"
+                  : "border-zinc-200 dark:border-zinc-800"
+              }`}
+            >
+              {/* ボタンの入れ子は不正なHTMLでキーボード操作もできないため、選択と取り外しを兄弟要素に分ける */}
               <button
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => {
                   setActiveSlot(isActive ? null : slotIndex);
                   setPendingTypeId(null);
                 }}
-                className={`flex w-full items-center justify-between rounded-lg border p-3 text-left ${
-                  isActive
-                    ? "border-zinc-900 ring-2 ring-zinc-900/20 dark:border-zinc-100"
-                    : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-                }`}
+                className="flex-1 rounded-l-lg p-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900"
               >
-                <span>
-                  <span className="text-xs text-zinc-500">スロット {slotIndex + 1}</span>
-                  <span className="block font-medium">
-                    {type ? `${type.name} ${rank?.label ?? ""}` : <span className="text-zinc-400">空き</span>}
-                  </span>
-                  {warn ? (
-                    <span className="block text-xs text-red-600">⚠ {holders.join("・")}体目も所持（被りNG）</span>
-                  ) : null}
+                <span className="text-xs text-zinc-500">スロット {slotIndex + 1}</span>
+                <span className="block font-medium">
+                  {type ? `${type.name} ${rank?.label ?? ""}` : <span className="text-zinc-400">空き</span>}
                 </span>
-                {slot ? (
-                  <span
-                    role="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      clear(slotIndex);
-                    }}
-                    className="rounded px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  >
-                    外す
-                  </span>
+                {warn ? (
+                  <span className="block text-xs text-red-600">⚠ {holders.join("・")}体目も所持（被りNG）</span>
                 ) : null}
               </button>
+              {slot ? (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => clear(slotIndex)}
+                  aria-label={`スロット ${slotIndex + 1} の実を外す`}
+                  className="rounded-r-lg px-3 text-xs text-zinc-500 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-800"
+                >
+                  外す
+                </button>
+              ) : null}
             </li>
           );
         })}

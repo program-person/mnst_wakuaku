@@ -38,8 +38,8 @@ export default async function OwnedMonsterPage({ params }: PageProps<"/monsters/
   });
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-6">
-      <header className="flex items-start justify-between gap-4">
+    <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 sm:p-6">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/monsters" className="text-sm text-zinc-500 hover:underline">← 所持キャラ</Link>
           <h1 className="text-2xl font-bold">
@@ -55,7 +55,7 @@ export default async function OwnedMonsterPage({ params }: PageProps<"/monsters/
           </p>
           {monster.memo ? <p className="mt-1 text-sm">{monster.memo}</p> : null}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        <div className="flex shrink-0 flex-row items-center gap-2 sm:flex-col sm:items-end">
           <form action={duplicateOwnedMonster}>
             <input type="hidden" name="source_id" value={monster.id} />
             <button className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">

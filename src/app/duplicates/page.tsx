@@ -10,7 +10,7 @@ export default async function DuplicatesPage() {
   const tolerated = duplicates.filter((row) => row.duplicate_policy !== "avoid");
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-6">
+    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6">
       <header>
         <Link href="/" className="text-sm text-zinc-500 hover:underline">← ホーム</Link>
         <h1 className="text-2xl font-bold">被りチェック</h1>

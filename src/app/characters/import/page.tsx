@@ -4,7 +4,7 @@ import { importCharacters } from "../actions";
 
 export default function ImportCharactersPage() {
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
       <header>
         <Link href="/characters" className="text-sm text-zinc-500 hover:underline">← キャラマスタ</Link>
         <h1 className="text-2xl font-bold">CSV から取り込む</h1>

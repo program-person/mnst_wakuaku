@@ -27,7 +27,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const categories = [...new Set(fruitTypes.map((type) => type.category))];
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 sm:p-6">
       <header>
         <Link href="/" className="text-sm text-zinc-500 hover:underline">← ホーム</Link>
         <h1 className="text-2xl font-bold">設定</h1>
@@ -109,7 +109,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           ))}
         </section>
 
-        <div className="sticky bottom-0 -mx-6 border-t border-zinc-200 bg-white/90 px-6 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+        <div className="sticky bottom-0 -mx-4 border-t border-zinc-200 bg-white/90 px-4 py-3 sm:-mx-6 sm:px-6 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
           <button className="rounded-md bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
             保存
           </button>

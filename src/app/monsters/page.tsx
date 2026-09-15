@@ -29,9 +29,9 @@ export default async function MonstersPage() {
   const groups = groupBySameCharacter(monsters, mode);
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-6">
-      <header className="flex items-center justify-between">
-        <div>
+    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="whitespace-nowrap">
           <Link href="/" className="text-sm text-zinc-500 hover:underline">← ホーム</Link>
           <h1 className="text-2xl font-bold">所持キャラ</h1>
         </div>
@@ -76,13 +76,13 @@ export default async function MonstersPage() {
               {copies.map((monster) => (
                 <li key={monster.id}>
                   <Link href={`/monsters/${monster.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900">
-                    <span className="w-24 shrink-0 text-sm">
+                    <span className="w-20 shrink-0 text-sm sm:w-24">
                       <span className="font-medium">{monster.copy_label}体目</span>
                       {monster.character.form ? <span className="block text-xs text-zinc-500">{monster.character.form}</span> : null}
+                      {monster.role_tag ? (
+                        <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs dark:bg-zinc-800">{monster.role_tag}</span>
+                      ) : null}
                     </span>
-                    {monster.role_tag ? (
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs dark:bg-zinc-800">{monster.role_tag}</span>
-                    ) : null}
                     <span className="flex flex-1 flex-wrap gap-1">
                       {Array.from({ length: Math.max(monster.hero_seal_slots, monster.equipped_fruits.length) }, (_, index) => {
                         const slotNo = index + 1;

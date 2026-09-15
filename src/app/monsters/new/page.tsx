@@ -13,7 +13,7 @@ export default async function NewMonsterPage({ searchParams }: NewMonsterPagePro
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
       <header>
         <Link href="/monsters" className="text-sm text-zinc-500 hover:underline">← 所持キャラ</Link>
         <h1 className="text-2xl font-bold">個体を追加</h1>
