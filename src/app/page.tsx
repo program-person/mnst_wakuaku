@@ -31,6 +31,10 @@ export default async function HomePage() {
           <h2 className="font-semibold">被りチェック</h2>
           <p className="text-sm text-zinc-500">同キャラで同じ実を持っている組み合わせ</p>
         </Link>
+        <Link href="/characters" className="rounded-xl border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900">
+          <h2 className="font-semibold">キャラマスタ</h2>
+          <p className="text-sm text-zinc-500">CSV で一括登録・書き出し</p>
+        </Link>
       </nav>
     </main>
   );

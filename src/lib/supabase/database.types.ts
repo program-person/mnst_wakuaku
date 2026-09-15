@@ -343,7 +343,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      import_characters: {
+        Args: { rows: Json }
+        Returns: { inserted: number; updated: number }[]
+      }
     }
     Enums: {
       [_ in never]: never
