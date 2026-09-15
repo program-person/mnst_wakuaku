@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { nextCopyLabel } from "@/lib/copy-label";
 import { createClient } from "@/lib/supabase/server";
 
 const MAX_HERO_SEAL_SLOTS = 4;
@@ -85,6 +86,50 @@ export async function createOwnedMonster(formData: FormData): Promise<void> {
   if (error) {
     redirect(`/monsters/new?error=${encodeURIComponent(`登録に失敗しました: ${error.message}`)}`);
   }
+
+  revalidatePath("/monsters");
+  redirect(`/monsters/${inserted.id}`);
+}
+
+/**
+ * 既存個体をもとに同キャラの次の個体を作る（◯体目を自動採番）。
+ * 実はコピーしない。「別の実を付けるための2体目」を素早く作る用途なので。
+ */
+export async function duplicateOwnedMonster(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const supabase = await createClient();
+
+  const sourceId = readText(formData, "source_id");
+  if (sourceId === "") throw new Error("複製元の個体が指定されていません");
+
+  const { data: source, error: sourceError } = await supabase
+    .from("owned_monsters")
+    .select("id, character_id, hero_seal_slots, role_tag, character:characters!inner(family_key)")
+    .eq("id", sourceId)
+    .maybeSingle();
+  if (sourceError) throw new Error(`複製元の取得に失敗しました: ${sourceError.message}`);
+  if (!source) throw new Error("複製元の個体が見つかりません");
+
+  const { data: siblings, error: siblingsError } = await supabase
+    .from("owned_monsters")
+    .select("copy_label, character:characters!inner(family_key)")
+    .eq("character.family_key", source.character.family_key)
+    .eq("is_archived", false);
+  if (siblingsError) throw new Error(`同キャラの取得に失敗しました: ${siblingsError.message}`);
+
+  const { data: inserted, error } = await supabase
+    .from("owned_monsters")
+    .insert({
+      user_id: userId,
+      character_id: source.character_id,
+      copy_label: nextCopyLabel(siblings.map((row) => row.copy_label)),
+      hero_seal_slots: source.hero_seal_slots,
+      // 役割は個体ごとに違うのが普通なので引き継がない
+      role_tag: null,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`複製に失敗しました: ${error.message}`);
 
   revalidatePath("/monsters");
   redirect(`/monsters/${inserted.id}`);

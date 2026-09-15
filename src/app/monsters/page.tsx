@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listOwnedMonsters, type OwnedMonsterWithDetails } from "@/lib/queries/owned-monsters";
+import { duplicateOwnedMonster } from "./actions";
 
 function groupByFamily(monsters: OwnedMonsterWithDetails[]): Map<string, OwnedMonsterWithDetails[]> {
   const groups = new Map<string, OwnedMonsterWithDetails[]>();
@@ -45,10 +46,18 @@ export default async function MonstersPage() {
       <div className="space-y-4">
         {[...groups.entries()].map(([familyKey, copies]) => (
           <section key={familyKey} className="rounded-xl border border-zinc-200 dark:border-zinc-800">
-            <h2 className="border-b border-zinc-200 px-4 py-2 font-semibold dark:border-zinc-800">
-              {familyKey}
-              <span className="ml-2 text-sm font-normal text-zinc-500">{copies.length}体</span>
-            </h2>
+            <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+              <h2 className="font-semibold">
+                {familyKey}
+                <span className="ml-2 text-sm font-normal text-zinc-500">{copies.length}体</span>
+              </h2>
+              <form action={duplicateOwnedMonster}>
+                <input type="hidden" name="source_id" value={copies[copies.length - 1].id} />
+                <button className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+                  ＋ もう1体
+                </button>
+              </form>
+            </div>
             <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {copies.map((monster) => (
                 <li key={monster.id}>

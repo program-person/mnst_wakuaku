@@ -4,7 +4,7 @@ import { FruitSlotEditor } from "@/components/fruit-slot-editor";
 import { getFruitRanks, getFruitTypes } from "@/lib/queries/masters";
 import { getOwnedMonster, listSiblingEquippedFruits } from "@/lib/queries/owned-monsters";
 import { createClient } from "@/lib/supabase/server";
-import { archiveOwnedMonster } from "../actions";
+import { archiveOwnedMonster, duplicateOwnedMonster } from "../actions";
 
 const MAX_SLOTS = 4;
 
@@ -53,12 +53,20 @@ export default async function OwnedMonsterPage({ params }: PageProps<"/monsters/
           </p>
           {monster.memo ? <p className="mt-1 text-sm">{monster.memo}</p> : null}
         </div>
-        <form action={archiveOwnedMonster}>
-          <input type="hidden" name="id" value={monster.id} />
-          <button className="rounded-md border border-zinc-300 px-3 py-1 text-xs text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
-            手放した（アーカイブ）
-          </button>
-        </form>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <form action={duplicateOwnedMonster}>
+            <input type="hidden" name="source_id" value={monster.id} />
+            <button className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
+              ＋ 同キャラをもう1体追加
+            </button>
+          </form>
+          <form action={archiveOwnedMonster}>
+            <input type="hidden" name="id" value={monster.id} />
+            <button className="rounded-md border border-zinc-300 px-3 py-1 text-xs text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+              手放した（アーカイブ）
+            </button>
+          </form>
+        </div>
       </header>
 
       {slotCount === 0 ? (
