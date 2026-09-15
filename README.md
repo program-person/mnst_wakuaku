@@ -14,7 +14,7 @@
 
 - Next.js 16 (App Router, Server Actions, Proxy) + TypeScript + Tailwind CSS v4
 - Supabase (Postgres + Auth + RLS)。クライアントは `@supabase/ssr`
-- デプロイ想定: Vercel
+- デプロイ: Vercel（https://monst-fruit-manager.vercel.app 、関数は東京リージョン `hnd1`）
 
 ## セットアップ
 
@@ -28,6 +28,16 @@ npm run dev
 DBスキーマは `supabase/migrations/` にある。Supabase ダッシュボードの SQL Editor で順に実行するか、Supabase CLI でリンクして `supabase db push` する。
 
 初回は `/login` の「新規登録」でアカウントを作る。Supabase 側で「Confirm email」が有効なら、確認メールのリンクを開いてからログインする。
+
+## デプロイ
+
+`main` に push すると Vercel が本番に自動デプロイする。環境変数は Vercel 側に登録済み（Production / Development）。
+
+```powershell
+npx vercel env ls
+```
+
+Supabase の Authentication → URL Configuration の Site URL は本番 URL にしておく（確認メールのリンク先になる）。
 
 ## データモデル
 
@@ -56,4 +66,5 @@ DBスキーマは `supabase/migrations/` にある。Supabase ダッシュボー
 - [x] 所持データ（個体・実・等級）の CSV インポート / エクスポート（`/monsters/import`、`/monsters/export`。エクスポートした形式をそのまま再取り込み可）
 - [x] 被り方針のユーザー上書きUI、同キャラ判定モードの切り替えUI（`/settings`）
 - [x] PWA 対応（ホーム画面に追加して単独アプリとして起動。オフライン対応は無し）
+- [x] Vercel デプロイ
 - [ ] スクショからの OCR 入力
