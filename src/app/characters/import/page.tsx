@@ -31,6 +31,7 @@ export default function ImportCharactersPage() {
               <tr><td className="px-2 py-1">element</td><td className="px-2 py-1">属性</td><td className="px-2 py-1">-</td><td className="px-2 py-1"></td></tr>
               <tr><td className="px-2 py-1">rarity</td><td className="px-2 py-1">レア度</td><td className="px-2 py-1">-</td><td className="px-2 py-1">1〜9 の数字。★は無視</td></tr>
               <tr><td className="px-2 py-1">series</td><td className="px-2 py-1">シリーズ</td><td className="px-2 py-1">-</td><td className="px-2 py-1"></td></tr>
+              <tr><td className="px-2 py-1">aliases</td><td className="px-2 py-1">別名 / 通称</td><td className="px-2 py-1">-</td><td className="px-2 py-1">検索用の通称。「|」か「、」区切りで複数可。既存の別名は消さずに追加だけする</td></tr>
             </tbody>
           </table>
         </div>

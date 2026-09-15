@@ -1,3 +1,3 @@
-﻿monster_no,name,name_kana,family_key,form,element,rarity,series
-1,オラゴン,おらごん,オラゴン,進化,火,5,
-,ルシファー,るしふぁー,ルシファー,獣神化,光,6,ガチャ
+﻿monster_no,name,name_kana,family_key,form,element,rarity,series,aliases
+1,オラゴン,おらごん,オラゴン,進化,火,5,,
+,ルシファー,るしふぁー,ルシファー,獣神化,光,6,ガチャ,ルシ|ルシファー獣

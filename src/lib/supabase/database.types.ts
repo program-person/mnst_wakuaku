@@ -16,6 +16,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      character_aliases: {
+        Row: {
+          alias: string
+          alias_normalized: string | null
+          character_id: number
+          created_at: string
+          created_by: string | null
+          id: number
+        }
+        Insert: {
+          alias: string
+          alias_normalized?: string | null
+          character_id: number
+          created_at?: string
+          created_by?: string | null
+          id?: number
+        }
+        Update: {
+          alias?: string
+          alias_normalized?: string | null
+          character_id?: number
+          created_at?: string
+          created_by?: string | null
+          id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_aliases_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
           attributes: Json
@@ -28,7 +63,9 @@ export type Database = {
           monster_no: number | null
           name: string
           name_kana: string | null
+          name_normalized: string | null
           rarity: number | null
+          search_text: string | null
           series: string | null
           source: string
           updated_at: string
@@ -44,7 +81,9 @@ export type Database = {
           monster_no?: number | null
           name: string
           name_kana?: string | null
+          name_normalized?: string | null
           rarity?: number | null
+          search_text?: string | null
           series?: string | null
           source?: string
           updated_at?: string
@@ -60,7 +99,9 @@ export type Database = {
           monster_no?: number | null
           name?: string
           name_kana?: string | null
+          name_normalized?: string | null
           rarity?: number | null
+          search_text?: string | null
           series?: string | null
           source?: string
           updated_at?: string
@@ -345,7 +386,11 @@ export type Database = {
     Functions: {
       import_characters: {
         Args: { rows: Json }
-        Returns: { inserted: number; updated: number }[]
+        Returns: {
+          aliases_added: number
+          inserted: number
+          updated: number
+        }[]
       }
       import_owned_monsters: {
         Args: { rows: Json }
@@ -356,6 +401,35 @@ export type Database = {
           updated: number
         }[]
       }
+      normalize_search_text: { Args: { input: string }; Returns: string }
+      search_characters: {
+        Args: { max_rows?: number; query: string }
+        Returns: {
+          attributes: Json
+          created_at: string
+          created_by: string | null
+          element: string | null
+          family_key: string
+          form: string | null
+          id: number
+          monster_no: number | null
+          name: string
+          name_kana: string | null
+          name_normalized: string | null
+          rarity: number | null
+          search_text: string | null
+          series: string | null
+          source: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "characters"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      search_tokens: { Args: { query: string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never

@@ -24,24 +24,15 @@ export function CharacterPicker() {
     const trimmed = query.trim();
     if (trimmed === "" || selected) return;
 
+    // 打鍵が速いと古い検索の応答が後から届くことがあるので、後始末済みの応答は捨てる
+    let isStale = false;
     const timer = setTimeout(async () => {
       const supabase = createClient();
-      let request = supabase
-        .from("characters")
-        .select("id, name, form, monster_no, family_key")
-        .limit(SEARCH_LIMIT)
-        .order("monster_no", { ascending: true, nullsFirst: false });
-
-      const asNumber = Number.parseInt(trimmed, 10);
-      if (!Number.isNaN(asNumber) && String(asNumber) === trimmed) {
-        request = request.eq("monster_no", asNumber);
-      } else {
-        // PostgREST の or フィルタ。%,() は構文文字なので除去してから渡す
-        const safe = trimmed.replace(/[%,()]/g, "");
-        request = request.or(`name.ilike.%${safe}%,name_kana.ilike.%${safe}%,family_key.ilike.%${safe}%`);
-      }
-
-      const { data, error } = await request;
+      // ひらがな/カタカナ・全角半角・通称の揺れは DB 側の search_characters が吸収する
+      const { data, error } = await supabase
+        .rpc("search_characters", { query: trimmed, max_rows: SEARCH_LIMIT })
+        .select("id, name, form, monster_no, family_key");
+      if (isStale) return;
       if (error) {
         setSearchError(error.message);
         setResults([]);
@@ -51,7 +42,10 @@ export function CharacterPicker() {
       setResults(data);
     }, SEARCH_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isStale = true;
+      clearTimeout(timer);
+    };
   }, [query, selected]);
 
   // 入力が空・選択済みのときは結果を出さない（effect 内で state を消さずに派生値で制御する）
@@ -82,7 +76,7 @@ export function CharacterPicker() {
           setQuery(event.target.value);
           setIsCreating(false);
         }}
-        placeholder="キャラ名 / かな / 図鑑No で検索"
+        placeholder="キャラ名 / かな / 通称 / 図鑑No で検索（空白で絞り込み）"
         className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
         autoFocus
       />

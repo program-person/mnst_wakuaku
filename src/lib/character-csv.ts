@@ -1,6 +1,6 @@
 import { parseCsv, resolveColumns, type RowError } from "@/lib/csv";
 
-/** import_characters 関数に渡す1行。すべて文字列で渡し、型変換はDB側で行う */
+/** import_characters 関数に渡す1行。別名以外は文字列で渡し、型変換はDB側で行う */
 export type CharacterCsvRow = {
   monster_no: string;
   name: string;
@@ -10,6 +10,7 @@ export type CharacterCsvRow = {
   element: string;
   rarity: string;
   series: string;
+  aliases: string[];
 };
 
 export const CHARACTER_CSV_COLUMNS = [
@@ -21,7 +22,24 @@ export const CHARACTER_CSV_COLUMNS = [
   "element",
   "rarity",
   "series",
+  "aliases",
 ] as const satisfies readonly (keyof CharacterCsvRow)[];
+
+/** 別名セルの区切り。書き出しは ALIAS_SEPARATOR、読み込みは全角読点やスラッシュも受け付ける */
+export const ALIAS_SEPARATOR = "|";
+const ALIAS_SPLIT_PATTERN = /[|｜、,，/／]/;
+
+export function splitAliases(cell: string): string[] {
+  const seen = new Set<string>();
+  const aliases: string[] = [];
+  for (const part of cell.split(ALIAS_SPLIT_PATTERN)) {
+    const alias = part.trim();
+    if (alias === "" || seen.has(alias)) continue;
+    seen.add(alias);
+    aliases.push(alias);
+  }
+  return aliases;
+}
 
 /** 受け付けるヘッダ名（英語の正式名と日本語の別名）。比較は正規化して行う */
 const HEADER_ALIASES: Record<keyof CharacterCsvRow, readonly string[]> = {
@@ -33,6 +51,7 @@ const HEADER_ALIASES: Record<keyof CharacterCsvRow, readonly string[]> = {
   element: ["element", "属性"],
   rarity: ["rarity", "レア度", "レアリティ", "星", "★"],
   series: ["series", "シリーズ", "ガチャ", "入手"],
+  aliases: ["aliases", "alias", "別名", "通称", "略称", "あだ名"],
 };
 
 const MAX_RARITY = 9;
@@ -102,6 +121,7 @@ export function parseCharacterCsv(text: string): ParsedCharacterCsv {
       element: read("element"),
       rarity,
       series: read("series"),
+      aliases: splitAliases(read("aliases")),
     });
   }
 

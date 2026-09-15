@@ -32,6 +32,7 @@ export async function importCharacters(_previous: ImportState, formData: FormDat
 
   let inserted = 0;
   let updated = 0;
+  let aliasesAdded = 0;
   for (let offset = 0; offset < parsed.rows.length; offset += IMPORT_CHUNK_SIZE) {
     const chunk = parsed.rows.slice(offset, offset + IMPORT_CHUNK_SIZE);
     const { data, error } = await supabase.rpc("import_characters", { rows: chunk });
@@ -43,6 +44,7 @@ export async function importCharacters(_previous: ImportState, formData: FormDat
     }
     inserted += data[0]?.inserted ?? 0;
     updated += data[0]?.updated ?? 0;
+    aliasesAdded += data[0]?.aliases_added ?? 0;
   }
 
   revalidatePath("/characters");
@@ -55,6 +57,7 @@ export async function importCharacters(_previous: ImportState, formData: FormDat
       { label: "新規登録", value: inserted },
       { label: "更新", value: updated },
       { label: "スキップ（既存と同名同形態 / ファイル内重複）", value: parsed.rows.length - inserted - updated },
+      { label: "別名を追加", value: aliasesAdded },
     ],
     errors: parsed.errors.slice(0, MAX_REPORTED_ERRORS),
     errorCount: parsed.errors.length,

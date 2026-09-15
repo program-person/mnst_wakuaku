@@ -1,4 +1,4 @@
-import { CHARACTER_CSV_COLUMNS } from "@/lib/character-csv";
+import { ALIAS_SEPARATOR, CHARACTER_CSV_COLUMNS } from "@/lib/character-csv";
 import { toCsvLine } from "@/lib/csv";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,7 +19,7 @@ export async function GET() {
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("characters")
-      .select("monster_no, name, name_kana, family_key, form, element, rarity, series")
+      .select("monster_no, name, name_kana, family_key, form, element, rarity, series, character_aliases(alias)")
       .order("monster_no", { ascending: true, nullsFirst: false })
       .order("id")
       .range(offset, offset + PAGE_SIZE - 1);
@@ -27,7 +27,13 @@ export async function GET() {
       return new Response(`エクスポートに失敗しました: ${error.message}`, { status: 500 });
     }
     for (const row of data) {
-      lines.push(toCsvLine(CHARACTER_CSV_COLUMNS.map((column) => row[column])));
+      lines.push(
+        toCsvLine(
+          CHARACTER_CSV_COLUMNS.map((column) =>
+            column === "aliases" ? row.character_aliases.map((item) => item.alias).join(ALIAS_SEPARATOR) : row[column],
+          ),
+        ),
+      );
     }
     if (data.length < PAGE_SIZE) break;
   }
