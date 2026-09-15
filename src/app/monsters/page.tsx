@@ -29,12 +29,20 @@ export default async function MonstersPage() {
           <Link href="/" className="text-sm text-zinc-500 hover:underline">← ホーム</Link>
           <h1 className="text-2xl font-bold">所持キャラ</h1>
         </div>
-        <Link
-          href="/monsters/new"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          ＋ 個体を追加
-        </Link>
+        <div className="flex flex-wrap justify-end gap-2">
+          <a href="/monsters/export" download className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            CSV エクスポート
+          </a>
+          <Link href="/monsters/import" className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            CSV インポート
+          </Link>
+          <Link
+            href="/monsters/new"
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
+          >
+            ＋ 個体を追加
+          </Link>
+        </div>
       </header>
 
       {monsters.length === 0 ? (

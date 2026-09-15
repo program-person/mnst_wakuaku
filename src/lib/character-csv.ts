@@ -1,4 +1,4 @@
-import { parseCsv } from "@/lib/csv";
+import { parseCsv, resolveColumns, type RowError } from "@/lib/csv";
 
 /** import_characters 関数に渡す1行。すべて文字列で渡し、型変換はDB側で行う */
 export type CharacterCsvRow = {
@@ -23,8 +23,8 @@ export const CHARACTER_CSV_COLUMNS = [
   "series",
 ] as const satisfies readonly (keyof CharacterCsvRow)[];
 
-/** 受け付けるヘッダ名（英語の正式名と日本語の別名）。比較は小文字化して行う */
-const HEADER_ALIASES: Record<keyof CharacterCsvRow, string[]> = {
+/** 受け付けるヘッダ名（英語の正式名と日本語の別名）。比較は正規化して行う */
+const HEADER_ALIASES: Record<keyof CharacterCsvRow, readonly string[]> = {
   monster_no: ["monster_no", "図鑑no", "no", "no.", "番号", "図鑑番号"],
   name: ["name", "名前", "キャラ名", "キャラクター名", "モンスター名"],
   name_kana: ["name_kana", "kana", "かな", "よみ", "読み", "ふりがな"],
@@ -37,18 +37,12 @@ const HEADER_ALIASES: Record<keyof CharacterCsvRow, string[]> = {
 
 const MAX_RARITY = 9;
 
-export type RowError = { line: number; message: string };
-
 export type ParsedCharacterCsv = {
   rows: CharacterCsvRow[];
   errors: RowError[];
   /** ヘッダ行で認識できた列 */
   recognizedColumns: (keyof CharacterCsvRow)[];
 };
-
-function normalizeHeader(cell: string): string {
-  return cell.replace(/^﻿/, "").trim().toLowerCase();
-}
 
 /**
  * CSVテキストをキャラ行に変換する。ヘッダ行必須。
@@ -60,13 +54,7 @@ export function parseCharacterCsv(text: string): ParsedCharacterCsv {
     return { rows: [], errors: [{ line: 1, message: "ファイルが空です" }], recognizedColumns: [] };
   }
 
-  const header = table[0].map(normalizeHeader);
-  const columnIndex = new Map<keyof CharacterCsvRow, number>();
-  for (const column of CHARACTER_CSV_COLUMNS) {
-    const aliases = HEADER_ALIASES[column];
-    const index = header.findIndex((cell) => aliases.includes(cell));
-    if (index >= 0) columnIndex.set(column, index);
-  }
+  const columnIndex = resolveColumns(table[0], HEADER_ALIASES);
 
   if (!columnIndex.has("name")) {
     return {
@@ -93,13 +81,13 @@ export function parseCharacterCsv(text: string): ParsedCharacterCsv {
       continue;
     }
 
-    const monsterNo = read("monster_no");
+    const monsterNo = read("monster_no").normalize("NFKC");
     if (monsterNo !== "" && !/^\d+$/.test(monsterNo)) {
       errors.push({ line, message: `図鑑Noが数値ではありません: ${monsterNo}` });
       continue;
     }
 
-    const rarity = read("rarity").replace(/[★☆]/g, "");
+    const rarity = read("rarity").normalize("NFKC").replace(/[★☆]/g, "");
     if (rarity !== "" && !(/^\d$/.test(rarity) && Number(rarity) >= 1 && Number(rarity) <= MAX_RARITY)) {
       errors.push({ line, message: `レア度が 1〜${MAX_RARITY} の数値ではありません: ${read("rarity")}` });
       continue;

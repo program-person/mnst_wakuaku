@@ -58,6 +58,31 @@ export function toCsvLine(cells: (string | number | null | undefined)[]): string
     .join(",");
 }
 
+/** ヘッダや入力値の比較用正規化。全角英数を半角に（NFKC）、BOM・前後空白を除去、小文字化 */
+export function normalizeToken(value: string): string {
+  return value.replace(/^﻿/, "").normalize("NFKC").trim().toLowerCase();
+}
+
+/**
+ * ヘッダ行から「列キー → 列番号」を作る。aliases の各候補と正規化して比較する。
+ * 見つからない列はマップに含まれない。
+ */
+export function resolveColumns<Key extends string>(
+  headerRow: string[],
+  aliases: Record<Key, readonly string[]>,
+): Map<Key, number> {
+  const header = headerRow.map(normalizeToken);
+  const columns = new Map<Key, number>();
+  for (const key of Object.keys(aliases) as Key[]) {
+    const candidates = aliases[key].map(normalizeToken);
+    const index = header.findIndex((cell) => candidates.includes(cell));
+    if (index >= 0) columns.set(key, index);
+  }
+  return columns;
+}
+
+export type RowError = { line: number; message: string };
+
 export type DetectedEncoding = "utf-8" | "shift_jis";
 
 /**

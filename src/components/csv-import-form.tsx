@@ -1,12 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { importCharacters, type ImportState } from "../actions";
+import { INITIAL_IMPORT_STATE, type ImportState } from "@/lib/import-state";
 
-const INITIAL_STATE: ImportState = { status: "idle" };
+type CsvImportFormProps = {
+  action: (previous: ImportState, formData: FormData) => Promise<ImportState>;
+};
 
-export function ImportForm() {
-  const [state, formAction, isPending] = useActionState(importCharacters, INITIAL_STATE);
+export function CsvImportForm({ action }: CsvImportFormProps) {
+  const [state, formAction, isPending] = useActionState(action, INITIAL_IMPORT_STATE);
 
   return (
     <div className="space-y-4">
@@ -40,20 +42,28 @@ export function ImportForm() {
           <h2 className="font-semibold">取り込み完了</h2>
           <table className="text-sm">
             <tbody>
-              <tr><td className="pr-4 text-zinc-500">文字コード</td><td>{state.encoding}</td></tr>
-              <tr><td className="pr-4 text-zinc-500">読み取った行</td><td>{state.totalRows}</td></tr>
-              <tr><td className="pr-4 text-zinc-500">新規登録</td><td>{state.inserted}</td></tr>
-              <tr><td className="pr-4 text-zinc-500">更新</td><td>{state.updated}</td></tr>
-              <tr><td className="pr-4 text-zinc-500">スキップ（既存と同名同形態 / ファイル内重複）</td><td>{state.skipped}</td></tr>
-              <tr><td className="pr-4 text-zinc-500">エラー行</td><td>{state.errorCount}</td></tr>
+              <tr>
+                <td className="pr-4 text-zinc-500">文字コード</td>
+                <td>{state.encoding}</td>
+              </tr>
+              {state.stats.map((stat) => (
+                <tr key={stat.label}>
+                  <td className="pr-4 text-zinc-500">{stat.label}</td>
+                  <td>{stat.value}</td>
+                </tr>
+              ))}
+              <tr>
+                <td className="pr-4 text-zinc-500">エラー行</td>
+                <td>{state.errorCount}</td>
+              </tr>
             </tbody>
           </table>
           {state.errors.length > 0 ? (
-            <details>
+            <details open={state.errorCount <= 5}>
               <summary className="cursor-pointer">エラーの内訳（先頭 {state.errors.length} 件）</summary>
               <ul className="mt-1 list-disc pl-5 text-red-700 dark:text-red-300">
-                {state.errors.map((error) => (
-                  <li key={`${error.line}-${error.message}`}>
+                {state.errors.map((error, index) => (
+                  <li key={`${error.line}-${index}`}>
                     {error.line}行目: {error.message}
                   </li>
                 ))}

@@ -347,6 +347,15 @@ export type Database = {
         Args: { rows: Json }
         Returns: { inserted: number; updated: number }[]
       }
+      import_owned_monsters: {
+        Args: { rows: Json }
+        Returns: {
+          characters_created: number
+          errors: Json
+          inserted: number
+          updated: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

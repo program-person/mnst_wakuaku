@@ -2,26 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseCharacterCsv, type RowError } from "@/lib/character-csv";
-import { decodeCsvBytes, type DetectedEncoding } from "@/lib/csv";
+import { parseCharacterCsv } from "@/lib/character-csv";
+import { decodeCsvBytes } from "@/lib/csv";
+import { MAX_REPORTED_ERRORS, type ImportState } from "@/lib/import-state";
 import { createClient } from "@/lib/supabase/server";
 
 const IMPORT_CHUNK_SIZE = 1000;
-const MAX_REPORTED_ERRORS = 50;
-
-export type ImportState =
-  | { status: "idle" }
-  | { status: "error"; message: string }
-  | {
-      status: "done";
-      encoding: DetectedEncoding;
-      totalRows: number;
-      inserted: number;
-      updated: number;
-      skipped: number;
-      errors: RowError[];
-      errorCount: number;
-    };
 
 /**
  * CSVファイルからキャラマスタを取り込む。useActionState から呼ぶ。
@@ -41,8 +27,7 @@ export async function importCharacters(_previous: ImportState, formData: FormDat
   const parsed = parseCharacterCsv(text);
 
   if (parsed.rows.length === 0) {
-    const firstError = parsed.errors[0]?.message ?? "取り込める行がありません";
-    return { status: "error", message: firstError };
+    return { status: "error", message: parsed.errors[0]?.message ?? "取り込める行がありません" };
   }
 
   let inserted = 0;
@@ -53,12 +38,11 @@ export async function importCharacters(_previous: ImportState, formData: FormDat
     if (error) {
       return {
         status: "error",
-        message: `${offset + 1}行目以降の取り込みでエラー: ${error.message}（それ以前の ${inserted + updated} 件は保存済み）`,
+        message: `${offset + 1}件目以降の取り込みでエラー: ${error.message}（それ以前の ${inserted + updated} 件は保存済み）`,
       };
     }
-    const result = data[0];
-    inserted += result?.inserted ?? 0;
-    updated += result?.updated ?? 0;
+    inserted += data[0]?.inserted ?? 0;
+    updated += data[0]?.updated ?? 0;
   }
 
   revalidatePath("/characters");
@@ -66,10 +50,12 @@ export async function importCharacters(_previous: ImportState, formData: FormDat
   return {
     status: "done",
     encoding,
-    totalRows: parsed.rows.length + parsed.errors.length,
-    inserted,
-    updated,
-    skipped: parsed.rows.length - inserted - updated,
+    stats: [
+      { label: "読み取った行", value: parsed.rows.length + parsed.errors.length },
+      { label: "新規登録", value: inserted },
+      { label: "更新", value: updated },
+      { label: "スキップ（既存と同名同形態 / ファイル内重複）", value: parsed.rows.length - inserted - updated },
+    ],
     errors: parsed.errors.slice(0, MAX_REPORTED_ERRORS),
     errorCount: parsed.errors.length,
   };

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ImportForm } from "./import-form";
+import { CsvImportForm } from "@/components/csv-import-form";
+import { importCharacters } from "../actions";
 
 export default function ImportCharactersPage() {
   return (
@@ -38,7 +39,7 @@ export default function ImportCharactersPage() {
         </p>
       </section>
 
-      <ImportForm />
+      <CsvImportForm action={importCharacters} />
     </main>
   );
 }
