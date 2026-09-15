@@ -2,6 +2,8 @@
 
 モンスターストライクの「わくわくの実」を、同キャラを複数体持っているときに**被らないように**管理するWebアプリ。
 
+個人用ツールとして運用している。新規登録は受け付けず、検索エンジンにも載せない。
+
 ## 何ができるか
 
 - 所持個体（同キャラ◯体目）ごとに、英雄の証の枠数・装着している実（種類＋等級）を記録する
@@ -14,7 +16,7 @@
 
 - Next.js 16 (App Router, Server Actions, Proxy) + TypeScript + Tailwind CSS v4
 - Supabase (Postgres + Auth + RLS)。クライアントは `@supabase/ssr`
-- デプロイ: Vercel（https://monst-fruit-manager.vercel.app 、関数は東京リージョン `hnd1`）
+- デプロイ: Vercel（関数は東京リージョン `hnd1`）
 
 ## セットアップ
 
@@ -27,7 +29,7 @@ npm run dev
 
 DBスキーマは `supabase/migrations/` にある。Supabase ダッシュボードの SQL Editor で順に実行するか、Supabase CLI でリンクして `supabase db push` する。
 
-初回は `/login` の「新規登録」でアカウントを作る。Supabase 側で「Confirm email」が有効なら、確認メールのリンクを開いてからログインする。
+アプリに新規登録画面は無い。自分で動かす場合は、Supabase ダッシュボードの Authentication → Users からユーザーを作成してログインする。
 
 ## デプロイ
 
