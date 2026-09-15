@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "crawl:dictionary": "node --env-file=.env.local scripts/dictionary/crawl.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

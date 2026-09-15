@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CharacterIcon } from "@/components/character-icon";
 import { FruitSlotEditor } from "@/components/fruit-slot-editor";
 import { getFruitRanks, getFruitTypes } from "@/lib/queries/masters";
 import { getOwnedMonster, listSameCharacterCopies } from "@/lib/queries/owned-monsters";
@@ -42,7 +43,14 @@ export default async function OwnedMonsterPage({ params }: PageProps<"/monsters/
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/monsters" className="text-sm text-zinc-500 hover:underline">← 所持キャラ</Link>
-          <h1 className="text-2xl font-bold">
+          <h1 className="flex items-center gap-3 text-2xl font-bold">
+            <CharacterIcon
+              monsterNo={monster.character.monster_no}
+              iconPath={monster.character.icon_path}
+              name={monster.character.name}
+              element={monster.character.element}
+              size={56}
+            />
             {monster.character.name}
             <span className="ml-2 text-base font-normal text-zinc-500">{monster.copy_label}体目</span>
           </h1>

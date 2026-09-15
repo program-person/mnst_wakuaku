@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CharacterIcon } from "@/components/character-icon";
 import { createClient } from "@/lib/supabase/server";
 
 const LIST_LIMIT = 100;
@@ -19,7 +20,7 @@ export default async function CharactersPage({ searchParams }: CharactersPagePro
   // 空の検索語なら図鑑No順の先頭から返る
   const { data: characters, error } = await supabase
     .rpc("search_characters", { query, max_rows: LIST_LIMIT })
-    .select("id, monster_no, name, name_kana, family_key, form, element, rarity, source");
+    .select("id, monster_no, name, name_kana, family_key, form, element, rarity, source, icon_path");
   if (error) throw new Error(`キャラマスタの取得に失敗しました: ${error.message}`);
 
   const aliasesByCharacter = new Map<number, string[]>();
@@ -91,7 +92,14 @@ export default async function CharactersPage({ searchParams }: CharactersPagePro
                 <tr key={character.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
                   <td className="px-3 py-2 text-zinc-500">{character.monster_no ?? "-"}</td>
                   <td className="px-3 py-2 font-medium">
-                    <Link href={`/characters/${character.id}`} className="hover:underline">
+                    <Link href={`/characters/${character.id}`} className="inline-flex items-center gap-2 hover:underline">
+                      <CharacterIcon
+                        monsterNo={character.monster_no}
+                        iconPath={character.icon_path}
+                        name={character.name}
+                        element={character.element}
+                        size={28}
+                      />
                       {character.name}
                     </Link>
                     {character.name_kana ? <span className="ml-1 text-xs text-zinc-500">{character.name_kana}</span> : null}

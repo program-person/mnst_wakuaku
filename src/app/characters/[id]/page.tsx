@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CharacterIcon } from "@/components/character-icon";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { addCharacterAlias, deleteCharacterAlias } from "./actions";
@@ -12,7 +13,7 @@ export default async function CharacterPage({ params, searchParams }: PageProps<
   const supabase = await createClient();
   const { data: character, error: characterError } = await supabase
     .from("characters")
-    .select("id, monster_no, name, name_kana, family_key, form, element, rarity, series, source, character_aliases(id, alias)")
+    .select("id, monster_no, name, name_kana, family_key, form, element, rarity, series, source, icon_path, character_aliases(id, alias)")
     .eq("id", Number(id))
     .maybeSingle();
   if (characterError) throw new Error(`キャラの取得に失敗しました: ${characterError.message}`);
@@ -33,7 +34,16 @@ export default async function CharacterPage({ params, searchParams }: PageProps<
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
       <header>
         <Link href="/characters" className="text-sm text-zinc-500 hover:underline">← キャラマスタ</Link>
-        <h1 className="text-2xl font-bold">{character.name}</h1>
+        <h1 className="flex items-center gap-3 text-2xl font-bold">
+          <CharacterIcon
+            monsterNo={character.monster_no}
+            iconPath={character.icon_path}
+            name={character.name}
+            element={character.element}
+            size={64}
+          />
+          {character.name}
+        </h1>
       </header>
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">

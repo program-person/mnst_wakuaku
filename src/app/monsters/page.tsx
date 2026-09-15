@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CharacterIcon } from "@/components/character-icon";
 import { FRUIT_CATEGORY_LABELS, getFruitTypes } from "@/lib/queries/masters";
 import {
   FRUIT_CONDITIONS,
@@ -221,9 +222,16 @@ export default async function MonstersPage({ searchParams }: PageProps<"/monster
         {groups.map(({ key, label, copies }) => (
           <section key={key} className="rounded-xl border border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
-              <h2 className="font-semibold">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <CharacterIcon
+                  monsterNo={copies[0].character.monster_no}
+                  iconPath={copies[0].character.icon_path}
+                  name={copies[0].character.name}
+                  element={copies[0].character.element}
+                  size={28}
+                />
                 {label}
-                <span className="ml-2 text-sm font-normal text-zinc-500">{copies.length}体</span>
+                <span className="text-sm font-normal text-zinc-500">{copies.length}体</span>
               </h2>
               <form action={duplicateOwnedMonster}>
                 <input type="hidden" name="source_id" value={copies[copies.length - 1].id} />
@@ -236,6 +244,13 @@ export default async function MonstersPage({ searchParams }: PageProps<"/monster
               {copies.map((monster) => (
                 <li key={monster.id}>
                   <Link href={`/monsters/${monster.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                    <CharacterIcon
+                      monsterNo={monster.character.monster_no}
+                      iconPath={monster.character.icon_path}
+                      name={monster.character.name}
+                      element={monster.character.element}
+                      size={36}
+                    />
                     <span className="w-20 shrink-0 text-sm sm:w-24">
                       <span className="font-medium">{monster.copy_label}体目</span>
                       {monster.character.form ? <span className="block text-xs text-zinc-500">{monster.character.form}</span> : null}

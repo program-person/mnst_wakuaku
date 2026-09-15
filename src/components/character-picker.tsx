@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CharacterIcon } from "@/components/character-icon";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/supabase/database.types";
 
-type CharacterSummary = Pick<Tables<"characters">, "id" | "name" | "form" | "monster_no" | "family_key">;
+type CharacterSummary = Pick<Tables<"characters">, "id" | "name" | "form" | "monster_no" | "family_key" | "element" | "icon_path">;
 
 const SEARCH_DEBOUNCE_MS = 200;
 const SEARCH_LIMIT = 20;
@@ -31,7 +32,7 @@ export function CharacterPicker() {
       // ひらがな/カタカナ・全角半角・通称の揺れは DB 側の search_characters が吸収する
       const { data, error } = await supabase
         .rpc("search_characters", { query: trimmed, max_rows: SEARCH_LIMIT })
-        .select("id, name, form, monster_no, family_key");
+        .select("id, name, form, monster_no, family_key, element, icon_path");
       if (isStale) return;
       if (error) {
         setSearchError(error.message);
@@ -55,7 +56,14 @@ export function CharacterPicker() {
     return (
       <div className="flex items-center justify-between rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm dark:border-emerald-800 dark:bg-emerald-950">
         <input type="hidden" name="character_id" value={selected.id} />
-        <span>
+        <span className="flex items-center gap-2">
+          <CharacterIcon
+            monsterNo={selected.monster_no}
+            iconPath={selected.icon_path}
+            name={selected.name}
+            element={selected.element}
+            size={32}
+          />
           <strong>{selected.name}</strong>
           {selected.form ? <span className="ml-1 text-zinc-500">（{selected.form}）</span> : null}
           {selected.monster_no ? <span className="ml-2 text-zinc-500">No.{selected.monster_no}</span> : null}
@@ -91,7 +99,14 @@ export function CharacterPicker() {
                 onClick={() => setSelected(character)}
                 className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                <span>
+                <span className="flex items-center gap-2">
+                  <CharacterIcon
+                    monsterNo={character.monster_no}
+                    iconPath={character.icon_path}
+                    name={character.name}
+                    element={character.element}
+                    size={28}
+                  />
                   {character.name}
                   {character.form ? <span className="ml-1 text-zinc-500">（{character.form}）</span> : null}
                 </span>

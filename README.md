@@ -43,6 +43,23 @@ npx vercel env ls
 
 Supabase の Authentication → URL Configuration の Site URL は本番 URL にしておく（確認メールのリンク先になる）。
 
+## キャラアイコンの取り込み
+
+個人利用の範囲で、MONST DICTIONARY から獣神化以上の形態のアイコンと、図鑑No・名前・形態・同キャラキーを取り込むスクリプトがある。画像は Supabase の非公開バケットに置き、ログイン中の本人にだけ配信する。
+
+- 自分の PC で実行する。サーバー負荷を避けるため、リクエストは既定で20秒以上の間隔を空ける（下限10秒）
+- 403 / 429 / 503 が返ったら即停止する。Ctrl+C で止めても `.crawl-state/` から続きを再開できる
+- 同じ系統のページは1回しか取らない。アイコンは ETag で変更の有無を確認し、変わったものだけ取り直す
+- キャラマスタに既にある図鑑No は上書きしない
+
+```powershell
+# .env.local に SUPABASE_SECRET_KEY を追加してから
+npm run crawl:dictionary -- --dry-run --limit=2
+npm run crawl:dictionary -- --limit=50
+```
+
+取得した画像や状態ファイルはリポジトリに入れない（`.crawl-state/` は gitignore 済み）。
+
 ## データモデル
 
 | テーブル | 役割 |
@@ -73,4 +90,5 @@ Supabase の Authentication → URL Configuration の Site URL は本番 URL に
 - [x] 被り方針のユーザー上書きUI、同キャラ判定モードの切り替えUI（`/settings`）
 - [x] PWA 対応（ホーム画面に追加して単独アプリとして起動。オフライン対応は無し）
 - [x] Vercel デプロイ
+- [x] キャラアイコン（MONST DICTIONARY から個人利用の範囲で取り込み、アイコンが無いキャラは属性色で代替表示）
 - [ ] スクショからの OCR 入力
