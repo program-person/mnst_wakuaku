@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { nextCopyLabel } from "@/lib/copy-label";
+import { listSameCharacterCopies } from "@/lib/queries/owned-monsters";
+import { getSameCharacterMode } from "@/lib/queries/settings";
 import { createClient } from "@/lib/supabase/server";
 
 const MAX_HERO_SEAL_SLOTS = 4;
@@ -104,18 +106,14 @@ export async function duplicateOwnedMonster(formData: FormData): Promise<void> {
 
   const { data: source, error: sourceError } = await supabase
     .from("owned_monsters")
-    .select("id, character_id, hero_seal_slots, role_tag, character:characters!inner(family_key)")
+    .select("id, character_id, hero_seal_slots, character:characters!inner(id, family_key)")
     .eq("id", sourceId)
     .maybeSingle();
   if (sourceError) throw new Error(`複製元の取得に失敗しました: ${sourceError.message}`);
   if (!source) throw new Error("複製元の個体が見つかりません");
 
-  const { data: siblings, error: siblingsError } = await supabase
-    .from("owned_monsters")
-    .select("copy_label, character:characters!inner(family_key)")
-    .eq("character.family_key", source.character.family_key)
-    .eq("is_archived", false);
-  if (siblingsError) throw new Error(`同キャラの取得に失敗しました: ${siblingsError.message}`);
+  const mode = await getSameCharacterMode(supabase);
+  const siblings = await listSameCharacterCopies(supabase, source.character, mode);
 
   const { data: inserted, error } = await supabase
     .from("owned_monsters")

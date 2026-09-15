@@ -1,26 +1,32 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listOwnedMonsters, type OwnedMonsterWithDetails } from "@/lib/queries/owned-monsters";
+import { getSameCharacterMode, type SameCharacterMode } from "@/lib/queries/settings";
 import { duplicateOwnedMonster } from "./actions";
 
-function groupByFamily(monsters: OwnedMonsterWithDetails[]): Map<string, OwnedMonsterWithDetails[]> {
-  const groups = new Map<string, OwnedMonsterWithDetails[]>();
+type MonsterGroup = { key: string; label: string; copies: OwnedMonsterWithDetails[] };
+
+/** 同キャラ判定モードに合わせて個体をまとめる */
+function groupBySameCharacter(monsters: OwnedMonsterWithDetails[], mode: SameCharacterMode): MonsterGroup[] {
+  const groups = new Map<string, MonsterGroup>();
   for (const monster of monsters) {
-    const key = monster.character.family_key;
-    const bucket = groups.get(key);
-    if (bucket) bucket.push(monster);
-    else groups.set(key, [monster]);
+    const { character } = monster;
+    const key = mode === "family" ? character.family_key : String(character.id);
+    const label = mode === "family" ? character.family_key : `${character.name}${character.form ? `（${character.form}）` : ""}`;
+    const group = groups.get(key);
+    if (group) group.copies.push(monster);
+    else groups.set(key, { key, label, copies: [monster] });
   }
-  for (const bucket of groups.values()) {
-    bucket.sort((a, b) => a.copy_label.localeCompare(b.copy_label, "ja", { numeric: true }));
+  for (const group of groups.values()) {
+    group.copies.sort((a, b) => a.copy_label.localeCompare(b.copy_label, "ja", { numeric: true }));
   }
-  return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b, "ja")));
+  return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label, "ja"));
 }
 
 export default async function MonstersPage() {
   const supabase = await createClient();
-  const monsters = await listOwnedMonsters(supabase);
-  const groups = groupByFamily(monsters);
+  const [monsters, mode] = await Promise.all([listOwnedMonsters(supabase), getSameCharacterMode(supabase)]);
+  const groups = groupBySameCharacter(monsters, mode);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-6">
@@ -52,11 +58,11 @@ export default async function MonstersPage() {
       ) : null}
 
       <div className="space-y-4">
-        {[...groups.entries()].map(([familyKey, copies]) => (
-          <section key={familyKey} className="rounded-xl border border-zinc-200 dark:border-zinc-800">
+        {groups.map(({ key, label, copies }) => (
+          <section key={key} className="rounded-xl border border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
               <h2 className="font-semibold">
-                {familyKey}
+                {label}
                 <span className="ml-2 text-sm font-normal text-zinc-500">{copies.length}体</span>
               </h2>
               <form action={duplicateOwnedMonster}>

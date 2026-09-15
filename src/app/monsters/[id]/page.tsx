@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FruitSlotEditor } from "@/components/fruit-slot-editor";
 import { getFruitRanks, getFruitTypes } from "@/lib/queries/masters";
-import { getOwnedMonster, listSiblingEquippedFruits } from "@/lib/queries/owned-monsters";
+import { getOwnedMonster, listSameCharacterCopies } from "@/lib/queries/owned-monsters";
+import { getDuplicatePolicies, getSameCharacterMode } from "@/lib/queries/settings";
 import { createClient } from "@/lib/supabase/server";
 import { archiveOwnedMonster, duplicateOwnedMonster } from "../actions";
 
@@ -15,18 +16,19 @@ export default async function OwnedMonsterPage({ params }: PageProps<"/monsters/
   const monster = await getOwnedMonster(supabase, id);
   if (!monster) notFound();
 
-  const [fruitTypes, fruitRanks, siblingFruits, policyRows] = await Promise.all([
+  const [fruitTypes, fruitRanks, mode] = await Promise.all([
     getFruitTypes(supabase),
     getFruitRanks(supabase),
-    listSiblingEquippedFruits(supabase, monster.character.family_key, monster.id),
-    supabase.from("user_fruit_policies").select("fruit_type_id, duplicate_policy"),
+    getSameCharacterMode(supabase),
   ]);
-  if (policyRows.error) throw new Error(`被りポリシーの取得に失敗しました: ${policyRows.error.message}`);
+  const [copies, duplicatePolicies] = await Promise.all([
+    listSameCharacterCopies(supabase, monster.character, mode),
+    getDuplicatePolicies(supabase, fruitTypes),
+  ]);
 
-  const duplicatePolicies: Record<number, string> = Object.fromEntries(
-    fruitTypes.map((type) => [type.id, type.default_duplicate_policy]),
-  );
-  for (const row of policyRows.data) duplicatePolicies[row.fruit_type_id] = row.duplicate_policy;
+  const siblingFruits = copies
+    .filter((copy) => copy.id !== monster.id)
+    .flatMap((copy) => copy.fruit_type_ids.map((fruitTypeId) => ({ copy_label: copy.copy_label, fruit_type_id: fruitTypeId })));
 
   // 証の枠数より多く実が付いている場合（データ修正中など）は実の数に合わせて表示
   const slotCount = Math.min(MAX_SLOTS, Math.max(monster.hero_seal_slots, monster.equipped_fruits.length));

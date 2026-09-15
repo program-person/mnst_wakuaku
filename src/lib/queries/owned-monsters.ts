@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SameCharacterMode } from "@/lib/queries/settings";
 import type { Database, Tables } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
@@ -48,30 +49,34 @@ export async function getOwnedMonster(
   return (data as OwnedMonsterWithDetails | null) ?? null;
 }
 
-/**
- * 同キャラ（family_key が同じ）の他個体が装着している実を返す。
- * 装着画面で「この実は◯体目が既に持っている」と警告するために使う。
- */
-export async function listSiblingEquippedFruits(
-  supabase: Client,
-  familyKey: string,
-  excludeOwnedMonsterId: string,
-): Promise<{ owned_monster_id: string; copy_label: string; fruit_type_id: number }[]> {
-  const { data, error } = await supabase
-    .from("owned_monsters")
-    .select("id, copy_label, character:characters!inner(family_key), equipped_fruits(fruit_type_id)")
-    .eq("character.family_key", familyKey)
-    .eq("is_archived", false)
-    .neq("id", excludeOwnedMonsterId);
-  if (error) throw new Error(`同キャラの実の取得に失敗しました: ${error.message}`);
+export type SameCharacterCopy = { id: string; copy_label: string; fruit_type_ids: number[] };
 
-  return data.flatMap((row) =>
-    row.equipped_fruits.map((fruit) => ({
-      owned_monster_id: row.id,
-      copy_label: row.copy_label,
-      fruit_type_id: fruit.fruit_type_id,
-    })),
-  );
+/**
+ * 同キャラとみなす個体（アーカイブ除く）を返す。判定はユーザー設定のモードに従う。
+ * - family: family_key が同じキャラの個体
+ * - character: 同じキャラマスタ行の個体
+ * 装着画面の被り警告と、複製時の◯体目の採番に使う。
+ */
+export async function listSameCharacterCopies(
+  supabase: Client,
+  character: { id: number; family_key: string },
+  mode: SameCharacterMode,
+): Promise<SameCharacterCopy[]> {
+  const base = supabase
+    .from("owned_monsters")
+    .select("id, copy_label, character:characters!inner(id, family_key), equipped_fruits(fruit_type_id)")
+    .eq("is_archived", false);
+  const request =
+    mode === "family" ? base.eq("character.family_key", character.family_key) : base.eq("character_id", character.id);
+
+  const { data, error } = await request;
+  if (error) throw new Error(`同キャラの個体の取得に失敗しました: ${error.message}`);
+
+  return data.map((row) => ({
+    id: row.id,
+    copy_label: row.copy_label,
+    fruit_type_ids: row.equipped_fruits.map((fruit) => fruit.fruit_type_id),
+  }));
 }
 
 export type FruitDuplicate = Tables<"v_fruit_duplicates">;
