@@ -1,0 +1,37 @@
+-- Applied via MCP apply_migration (name: seed_fruit_types)
+-- 出典: AppMedia わくわくの実の種類と効果 https://appmedia.jp/monst/2177008
+-- effect_scope / stacks_in_party / default_duplicate_policy はこちらの解釈（要検証）。UIから上書き可能にする想定。
+
+insert into public.fruit_types (code, name, short_name, category, effect_scope, stacks_in_party, default_duplicate_policy, sort_order) values
+  ('kizuna_race_atk',      '同族の絆・加撃',   '同絆撃',  'attack', 'party', true, 'avoid', 10),
+  ('kizuna_race_spd',      '同族の絆・加速',   '同絆速',  'attack', 'party', true, 'avoid', 11),
+  ('kizuna_race_hp',       '同族の絆・加命',   '同絆命',  'attack', 'party', true, 'avoid', 12),
+  ('kizuna_race_atk_spd',  '同族の絆・加撃速', '同絆撃速','attack', 'party', true, 'avoid', 13),
+  ('kizuna_race_spd_hp',   '同族の絆・加速命', '同絆速命','attack', 'party', true, 'avoid', 14),
+  ('kizuna_race_hp_atk',   '同族の絆・加命撃', '同絆命撃','attack', 'party', true, 'avoid', 15),
+  ('kizuna_shot_atk',      '撃種の絆・加撃',   '撃絆撃',  'attack', 'party', true, 'avoid', 20),
+  ('kizuna_shot_spd',      '撃種の絆・加速',   '撃絆速',  'attack', 'party', true, 'avoid', 21),
+  ('kizuna_shot_hp',       '撃種の絆・加命',   '撃絆命',  'attack', 'party', true, 'avoid', 22),
+  ('kizuna_shot_atk_spd',  '撃種の絆・加撃速', '撃絆撃速','attack', 'party', true, 'avoid', 23),
+  ('kizuna_shot_spd_hp',   '撃種の絆・加速命', '撃絆速命','attack', 'party', true, 'avoid', 24),
+  ('kizuna_shot_hp_atk',   '撃種の絆・加命撃', '撃絆命撃','attack', 'party', true, 'avoid', 25),
+  ('kizuna_type_atk',      '戦型の絆・加撃',   '戦絆撃',  'attack', 'party', true, 'avoid', 30),
+  ('kizuna_type_spd',      '戦型の絆・加速',   '戦絆速',  'attack', 'party', true, 'avoid', 31),
+  ('kizuna_type_hp',       '戦型の絆・加命',   '戦絆命',  'attack', 'party', true, 'avoid', 32),
+  ('kizuna_type_atk_spd',  '戦型の絆・加撃速', '戦絆撃速','attack', 'party', true, 'avoid', 33),
+  ('kizuna_type_spd_hp',   '戦型の絆・加速命', '戦絆速命','attack', 'party', true, 'avoid', 34),
+  ('kizuna_type_hp_atk',   '戦型の絆・加命撃', '戦絆命撃','attack', 'party', true, 'avoid', 35),
+  ('yugeki',      '熱き友撃の力',   '友撃',   'support',  'self', false, 'allow', 40),
+  ('kega_heri',   'ケガ減りの力',   'ケガ減り','survival', 'self', false, 'allow', 41),
+  ('shisshin',    '一撃失心の力',   '失心',   'support',  'self', true,  'allow', 42),
+  ('sokuhissatsu','速必殺の力',     '速必殺', 'support',  'self', false, 'allow', 43),
+  ('doku_gaman',  '毒がまんの力',   '毒がまん','survival','self', false, 'allow', 44),
+  ('chibi_iyashi','ちび癒しの力',   'ちび癒し','survival','self', true,  'allow', 45),
+  ('heart_kyoka', 'ハート強化の力', 'ハート', 'survival', 'party', true, 'allow', 46),
+  ('shomei_kezuri','将命削りの力',  '将命',   'support',  'party', false, 'avoid', 50),
+  ('heimei_kezuri','兵命削りの力',  '兵命',   'support',  'party', false, 'avoid', 51),
+  ('manabi',      '学びの力',       '学び',   'quest_reward', 'party', false, 'avoid', 60),
+  ('arakasegi',   '荒稼ぎの力',     '荒稼ぎ', 'quest_reward', 'party', false, 'avoid', 61),
+  ('score',       'スコア稼ぎの力', 'スコア', 'quest_reward', 'party', false, 'avoid', 62),
+  ('speed_clear', 'スピクリの力',   'スピクリ','quest_reward','party', false, 'avoid', 63),
+  ('s_rank',      'Sランクの力',    'Sランク','quest_reward', 'party', false, 'avoid', 64);
