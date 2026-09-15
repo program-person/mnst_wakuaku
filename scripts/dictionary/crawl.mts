@@ -1,16 +1,17 @@
 /**
- * MONST DICTIONARY から、獣神化以上の形態のアイコンとキャラ情報（図鑑No・名前・形態・同キャラキー）を取り込む。
+ * MONST DICTIONARY から、獣神化以上の形態のアイコンとキャラ情報（図鑑No・名前・形態・属性・レア度・同キャラキー）を取り込む。
  * 個人利用のため、画像は Supabase の非公開バケットに保存する。
  *
  * 実行（リポジトリ直下で）:
- *   npm run crawl:dictionary -- --limit=50
- *   （中身は node --env-file=.env.local scripts/dictionary/crawl.mts）
+ *   node --env-file=.env.local scripts/dictionary/crawl.mts --limit=50
+ *   （Windows PowerShell では npm run 経由だと "--" が消えてオプションが渡らないので、node で直接実行する）
  *
  * オプション:
  *   --limit=N          今回処理するキャラページ数の上限（既定: 無制限）
  *   --interval=秒      リクエスト間の最短間隔（既定: 20、下限: 10）。実際はこれに 0〜50% の揺らぎを足す
  *   --dry-run          取得と読み取りだけ行い、DB とストレージには書かない（アイコンも取りに行かない）
  *   --refresh-sitemap  サイトマップを取り直す（新キャラ追加時など）
+ *   --revisit-done     処理済みページを取り直す（読み取る項目を増やしたときの補完用。アイコンは変更が無ければ本体を受け取らない）
  *
  * 途中で Ctrl+C しても、処理済みのページは .crawl-state/ に記録されるので続きから再開できる。
  */
@@ -20,6 +21,7 @@ import { createClient } from "@supabase/supabase-js";
 import {
   DICTIONARY_ORIGIN,
   iconUrl,
+  inferRarity,
   isIconTargetForm,
   pageUrl,
   parseCharacterPage,
@@ -28,6 +30,14 @@ import {
   type DictionaryForm,
   type DictionaryPage,
 } from "./parse.mts";
+import {
+  estimateRemainingPages,
+  estimateSecondsPerPage,
+  formatClock,
+  formatDuration,
+  formatPercent,
+  type RunHistory,
+} from "./progress.mts";
 
 const STATE_PATH = join(process.cwd(), ".crawl-state", "dictionary.json");
 const ICON_BUCKET = "character-icons";
@@ -39,6 +49,10 @@ const MAX_CONSECUTIVE_FAILURES = 3;
 const USER_AGENT = "monst-fruit-manager-personal/1.0 (personal use, low-rate)";
 // これらが返ったら「負荷をかけている / 拒否されている」とみなして即停止する
 const STOP_STATUSES = new Set([403, 429, 503]);
+// 狭いターミナル（50桁程度）でも折り返さない幅
+const RULE = "=".repeat(40);
+const THIN_RULE = "-".repeat(40);
+const TERMINAL_BELL = "\u0007";
 
 type PageRecord = { status: "done" | "not_found" | "unparsable"; at: string };
 type CrawlState = {
@@ -47,9 +61,17 @@ type CrawlState = {
   pages: Record<string, PageRecord>;
   /** 形態一覧で既に見つかった図鑑No → 見つけたページ番号。同じ系統のページを何度も取りに行かないため */
   coveredBy: Record<string, number>;
+  /** 所要時間の予想に使う実績（古い状態ファイルには無い） */
+  history?: RunHistory;
 };
 
-type Options = { limit: number; intervalSeconds: number; dryRun: boolean; refreshSitemap: boolean };
+type Options = {
+  limit: number;
+  intervalSeconds: number;
+  dryRun: boolean;
+  refreshSitemap: boolean;
+  revisitDone: boolean;
+};
 
 class StopCrawl extends Error {}
 
@@ -59,6 +81,7 @@ function parseOptions(argv: string[]): Options {
     intervalSeconds: DEFAULT_INTERVAL_SECONDS,
     dryRun: false,
     refreshSitemap: false,
+    revisitDone: false,
   };
   for (const argument of argv) {
     const [key, value] = argument.split("=");
@@ -66,6 +89,7 @@ function parseOptions(argv: string[]): Options {
     else if (key === "--interval" && /^\d+$/.test(value ?? "")) options.intervalSeconds = Number(value);
     else if (key === "--dry-run") options.dryRun = true;
     else if (key === "--refresh-sitemap") options.refreshSitemap = true;
+    else if (key === "--revisit-done") options.revisitDone = true;
     else throw new Error(`不明なオプションです: ${argument}`);
   }
   if (options.intervalSeconds < MIN_INTERVAL_SECONDS) {
@@ -171,30 +195,58 @@ async function resolveOwnerUserId(database: Database): Promise<string> {
   return data.users[0].id;
 }
 
+type RegisterResult = { added: number; filled: number };
+
 /**
- * 獣神化以上の形態をキャラマスタに登録する。既にある図鑑No は一切上書きしない（手で直した内容を守る）
+ * 獣神化以上の形態をキャラマスタに登録する。
+ * 既にある図鑑No は名前などを上書きせず、属性とレア度が空欄のときだけ埋める（手で直した内容を守る）
  */
-async function registerCharacters(database: Database, page: DictionaryPage, forms: DictionaryForm[], ownerUserId: string) {
+async function registerCharacters(
+  database: Database,
+  page: DictionaryPage,
+  forms: DictionaryForm[],
+  ownerUserId: string,
+): Promise<RegisterResult> {
   const monsterNumbers = forms.map((form) => form.monsterNo);
-  const { data: existing, error } = await database.from("characters").select("monster_no").in("monster_no", monsterNumbers);
+  const { data: existing, error } = await database
+    .from("characters")
+    .select("id, monster_no, element, rarity")
+    .in("monster_no", monsterNumbers);
   if (error) throw new Error(`キャラマスタの確認に失敗しました: ${error.message}`);
 
-  const existingNumbers = new Set(existing.map((row) => row.monster_no as number));
+  const existingByNumber = new Map(existing.map((row) => [row.monster_no as number, row]));
   const rows = forms
-    .filter((form) => !existingNumbers.has(form.monsterNo))
+    .filter((form) => !existingByNumber.has(form.monsterNo))
     .map((form) => ({
       monster_no: form.monsterNo,
       name: form.name,
       form: form.label,
       family_key: page.name,
+      element: form.element,
+      rarity: inferRarity(form.label),
       source: "dictionary",
       created_by: ownerUserId,
     }));
-  if (rows.length === 0) return 0;
+  if (rows.length > 0) {
+    const { error: insertError } = await database.from("characters").insert(rows);
+    if (insertError) throw new Error(`キャラマスタへの登録に失敗しました: ${insertError.message}`);
+  }
 
-  const { error: insertError } = await database.from("characters").insert(rows);
-  if (insertError) throw new Error(`キャラマスタへの登録に失敗しました: ${insertError.message}`);
-  return rows.length;
+  let filled = 0;
+  for (const form of forms) {
+    const row = existingByNumber.get(form.monsterNo);
+    if (!row) continue;
+    const patch: { element?: string; rarity?: number } = {};
+    const rarity = inferRarity(form.label);
+    if (row.element === null && form.element !== null) patch.element = form.element;
+    if (row.rarity === null && rarity !== null) patch.rarity = rarity;
+    if (Object.keys(patch).length === 0) continue;
+    const { error: updateError } = await database.from("characters").update(patch).eq("id", row.id);
+    if (updateError) throw new Error(`No.${form.monsterNo} の属性・レア度の補完に失敗しました: ${updateError.message}`);
+    filled += 1;
+  }
+
+  return { added: rows.length, filled };
 }
 
 type IconResult = "saved" | "unchanged" | "not_found";
@@ -234,12 +286,91 @@ async function syncIcon(database: Database, politeFetch: PoliteFetch, monsterNo:
   return "saved";
 }
 
+type Totals = {
+  pages: number;
+  charactersAdded: number;
+  charactersFilled: number;
+  iconsSaved: number;
+  iconsUnchanged: number;
+  iconsMissing: number;
+};
+
+function isResolved(state: CrawlState, pageNo: number): boolean {
+  return Boolean(state.pages[pageNo]) || state.coveredBy[pageNo] !== undefined;
+}
+
+function countResolved(state: CrawlState): number {
+  return state.pageNumbers.filter((pageNo) => isResolved(state, pageNo)).length;
+}
+
+/** 開始時の案内。1行を短く、揃えずに出す（全角文字の幅揃えは環境で崩れるため） */
+function printPlan(input: { plannedPages: number; plannedSeconds: number; startedAt: number; options: Options }): void {
+  const { options } = input;
+  const modes = [options.dryRun ? "dry-run" : "", options.revisitDone ? "処理済みの取り直し" : ""].filter(Boolean);
+  console.log(
+    [
+      RULE,
+      ` MONST DICTIONARY 取り込み${modes.length > 0 ? `（${modes.join("・")}）` : ""}`,
+      THIN_RULE,
+      ` 今回の予定: ${input.plannedPages} ページ`,
+      ` 予想時間: 約${formatDuration(input.plannedSeconds)}`,
+      ` 終了予定: ${formatClock(new Date(input.startedAt + input.plannedSeconds * 1000))} 頃`,
+      ` 間隔: ${options.intervalSeconds} 秒〜`,
+      " 中断: Ctrl+C（続きは次回再開）",
+      RULE,
+    ].join("\n"),
+  );
+}
+
+/** 終了時のまとめ。終わったことに気づけるよう、ベルを鳴らしてから出す */
+function printSummary(input: {
+  outcome: string;
+  totals: Totals;
+  elapsedSeconds: number;
+  state: CrawlState;
+  secondsPerPage: number;
+  dryRun: boolean;
+}): void {
+  const { totals, state } = input;
+  const resolved = countResolved(state);
+  const total = state.pageNumbers.length;
+  const remainingInSitemap = total - resolved;
+  const remainingPages = estimateRemainingPages(remainingInSitemap, resolved, Object.keys(state.pages).length);
+
+  const lines = [
+    "",
+    RULE,
+    ` ${input.outcome}`,
+    THIN_RULE,
+    ` 実行時間: ${formatDuration(input.elapsedSeconds)}`,
+    ` 処理したページ: ${totals.pages}`,
+    ` キャラ追加: ${totals.charactersAdded}`,
+    ` 属性・レア度の補完: ${totals.charactersFilled}`,
+    ` アイコン保存: ${totals.iconsSaved}`,
+    ` アイコン変更なし: ${totals.iconsUnchanged}`,
+    ` アイコンなし: ${totals.iconsMissing}`,
+    THIN_RULE,
+    ` 全体の進み: ${resolved} / ${total}（${formatPercent(resolved, total)}）`,
+    remainingInSitemap === 0
+      ? " 全ページ処理済みです"
+      : ` 残りの目安: 約${remainingPages}ページ、約${formatDuration(remainingPages * input.secondsPerPage)}`,
+    ` 1ページの目安: ${formatDuration(input.secondsPerPage)}`,
+  ];
+  if (input.dryRun) lines.push(" dry-run のため進捗は保存していません");
+  lines.push(RULE);
+
+  process.stdout.write(TERMINAL_BELL);
+  console.log(lines.join("\n"));
+}
+
 async function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
   const politeFetch = createPoliteFetcher(options.intervalSeconds);
   const state = loadState();
+  const history: RunHistory = (state.history ??= { pagesProcessed: 0, secondsSpent: 0 });
   const database = options.dryRun ? null : createDatabase();
   const ownerUserId = database ? await resolveOwnerUserId(database) : null;
+  const startedAt = Date.now();
 
   let interrupted = false;
   process.on("SIGINT", () => {
@@ -255,18 +386,29 @@ async function main(): Promise<void> {
     saveState(state);
   }
 
-  const queue = state.pageNumbers.filter((pageNo) => !state.pages[pageNo] && state.coveredBy[pageNo] === undefined);
-  const plannedPages = Math.min(queue.length, options.limit);
-  // 1ページにつきページ本体1回＋アイコン最大3回。同系統のページは飛ばすので実際はもっと短い
-  const maxRequestsPerPage = options.dryRun ? 1 : 4;
-  const upperBoundHours = (plannedPages * maxRequestsPerPage * options.intervalSeconds * (1 + JITTER_RATIO / 2)) / 3600;
-  console.log(
-    `未処理 ${queue.length} ページ中、最大 ${plannedPages} ページを処理します` +
-      `（間隔 ${options.intervalSeconds} 秒〜、長く見積もって ${upperBoundHours.toFixed(1)} 時間）` +
-      (options.dryRun ? " [dry-run]" : ""),
-  );
+  const queue = options.revisitDone
+    ? state.pageNumbers.filter((pageNo) => state.pages[pageNo]?.status === "done")
+    : state.pageNumbers.filter((pageNo) => !isResolved(state, pageNo));
 
-  const totals = { pages: 0, charactersAdded: 0, iconsSaved: 0, iconsUnchanged: 0, iconsMissing: 0 };
+  // 打ち切りは上限とキューの長さだけで決める。予想ページ数で打ち切ると、予想が外れたときに途中で止まってしまう
+  const maxPages = Math.min(queue.length, options.limit);
+  // 表示用の予想。通常は同系統の形態ページをまとめて片付けるので、未処理件数より実際に取るページは少ない
+  const expectedPages = options.revisitDone
+    ? maxPages
+    : Math.min(estimateRemainingPages(queue.length, countResolved(state), Object.keys(state.pages).length), options.limit);
+  const plannedPages = Math.min(expectedPages, maxPages);
+  const plannedSeconds = plannedPages * estimateSecondsPerPage(history, options.intervalSeconds, JITTER_RATIO);
+  printPlan({ plannedPages, plannedSeconds, startedAt, options });
+
+  const totals: Totals = {
+    pages: 0,
+    charactersAdded: 0,
+    charactersFilled: 0,
+    iconsSaved: 0,
+    iconsUnchanged: 0,
+    iconsMissing: 0,
+  };
+  let outcome = maxPages === 0 ? "処理するページはありません" : "取り込み完了";
 
   // dry-run の結果は記録しない（記録すると本番実行でそのページが処理済み扱いになり、取り込まれなくなる）
   const recordProgress = (): void => {
@@ -275,10 +417,11 @@ async function main(): Promise<void> {
 
   try {
     for (const pageNo of queue) {
-      if (interrupted || totals.pages >= plannedPages) break;
-      // 同じ実行中に、別ページの形態一覧で既に見つかった番号なら取りに行かない
-      if (state.coveredBy[pageNo] !== undefined) continue;
+      if (interrupted || totals.pages >= maxPages) break;
+      // 同じ実行中に、別ページの形態一覧で既に見つかった番号なら取りに行かない（取り直し時は除く）
+      if (!options.revisitDone && state.coveredBy[pageNo] !== undefined) continue;
 
+      const pageStartedAt = Date.now();
       const response = await politeFetch(pageUrl(pageNo));
       const at = new Date().toISOString();
       if (response.status === 404) {
@@ -297,12 +440,10 @@ async function main(): Promise<void> {
       }
 
       const targets = page.forms.filter((form) => isIconTargetForm(form.label));
-      console.log(
-        `[${totals.pages + 1}/${plannedPages}] ${page.name}: 形態 ${page.forms.length}、対象 ${targets.map((form) => `${form.label}(No.${form.monsterNo})`).join(" ") || "なし"}`,
-      );
-
       if (database && ownerUserId && targets.length > 0) {
-        totals.charactersAdded += await registerCharacters(database, page, targets, ownerUserId);
+        const registered = await registerCharacters(database, page, targets, ownerUserId);
+        totals.charactersAdded += registered.added;
+        totals.charactersFilled += registered.filled;
         for (const form of targets) {
           if (interrupted) break;
           const result = await syncIcon(database, politeFetch, form.monsterNo);
@@ -315,25 +456,39 @@ async function main(): Promise<void> {
       // 形態一覧に出た図鑑No のページは同じ内容なので、以後は取りに行かない
       for (const form of page.forms) state.coveredBy[form.monsterNo] ??= pageNo;
       state.pages[pageNo] = { status: "done", at };
-      recordProgress();
       totals.pages += 1;
+      if (!options.dryRun) {
+        history.pagesProcessed += 1;
+        history.secondsSpent += (Date.now() - pageStartedAt) / 1000;
+      }
+      recordProgress();
+
+      // 今回の実測の平均で、残り時間と終了時刻を出し直す。予想より多く取ることもあるので分母は大きい方を使う
+      const elapsedSeconds = (Date.now() - startedAt) / 1000;
+      const expectedTotal = Math.max(plannedPages, totals.pages);
+      const remainingSeconds = (expectedTotal - totals.pages) * (elapsedSeconds / totals.pages);
+      const element = targets[0]?.element ?? page.forms[0]?.element ?? "属性不明";
+      console.log(
+        `[${totals.pages}/約${expectedTotal}] ${page.name}（${element}）対象${targets.length}形態\n` +
+          `  経過 ${formatDuration(elapsedSeconds)} / 残り約${formatDuration(remainingSeconds)}` +
+          `（${formatClock(new Date(Date.now() + remainingSeconds * 1000))} 頃）`,
+      );
     }
+    if (interrupted) outcome = "中断しました（続きは次回再開します）";
   } catch (error) {
     recordProgress();
-    if (error instanceof StopCrawl) {
-      console.error(`\n停止: ${error.message}`);
-      process.exitCode = 2;
-    } else {
-      throw error;
-    }
+    process.exitCode = error instanceof StopCrawl ? 2 : 1;
+    outcome = `停止: ${error instanceof Error ? error.message : String(error)}`;
   }
 
-  const remaining = state.pageNumbers.filter((pageNo) => !state.pages[pageNo] && state.coveredBy[pageNo] === undefined).length;
-  if (options.dryRun) console.log("dry-run のため進捗は保存していません");
-  console.log(
-    `\n完了: ページ ${totals.pages}、キャラ追加 ${totals.charactersAdded}、アイコン保存 ${totals.iconsSaved}、` +
-      `変更なし ${totals.iconsUnchanged}、アイコンなし ${totals.iconsMissing}。残り ${remaining} ページ`,
-  );
+  printSummary({
+    outcome,
+    totals,
+    elapsedSeconds: (Date.now() - startedAt) / 1000,
+    state,
+    secondsPerPage: estimateSecondsPerPage(history, options.intervalSeconds, JITTER_RATIO),
+    dryRun: options.dryRun,
+  });
 }
 
 main().catch((error: unknown) => {

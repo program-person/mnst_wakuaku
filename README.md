@@ -45,18 +45,24 @@ Supabase の Authentication → URL Configuration の Site URL は本番 URL に
 
 ## キャラアイコンの取り込み
 
-個人利用の範囲で、MONST DICTIONARY から獣神化以上の形態のアイコンと、図鑑No・名前・形態・同キャラキーを取り込むスクリプトがある。画像は Supabase の非公開バケットに置き、ログイン中の本人にだけ配信する。
+個人利用の範囲で、MONST DICTIONARY から獣神化以上の形態のアイコンと、図鑑No・名前・形態・属性・同キャラキーを取り込むスクリプトがある。画像は Supabase の非公開バケットに置き、ログイン中の本人にだけ配信する。
 
 - 自分の PC で実行する。サーバー負荷を避けるため、リクエストは既定で20秒以上の間隔を空ける（下限10秒）
 - 403 / 429 / 503 が返ったら即停止する。Ctrl+C で止めても `.crawl-state/` から続きを再開できる
 - 同じ系統のページは1回しか取らない。アイコンは ETag で変更の有無を確認し、変わったものだけ取り直す
-- キャラマスタに既にある図鑑No は上書きしない
+- キャラマスタに既にある図鑑No は名前などを上書きせず、属性とレア度が空欄のときだけ埋める
+- 図鑑にレア度は載っていないため、獣神化系の形態は★6として登録する（前提。要検証）
+- 開始時に予想時間と終了予定時刻、各ページで残り時間、終了時にまとめと全体の残りの目安を表示する
 
 ```powershell
-# .env.local に SUPABASE_SECRET_KEY を追加してから
-npm run crawl:dictionary -- --dry-run --limit=2
-npm run crawl:dictionary -- --limit=50
+# .env.local に SUPABASE_SECRET_KEY を追加してから、リポジトリ直下で実行する
+node --env-file=.env.local scripts/dictionary/crawl.mts --dry-run --limit=2
+node --env-file=.env.local scripts/dictionary/crawl.mts --limit=50
+# 読み取る項目を増やしたあと、処理済みページを取り直して補完する
+node --env-file=.env.local scripts/dictionary/crawl.mts --revisit-done
 ```
+
+Windows PowerShell では `npm run crawl:dictionary -- --limit=50` の `--` が消えてオプションが渡らないので、node で直接実行する。
 
 取得した画像や状態ファイルはリポジトリに入れない（`.crawl-state/` は gitignore 済み）。
 

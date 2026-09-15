@@ -11,7 +11,7 @@ export function parseSitemapIndex(xml: string): string[] {
   return [...xml.matchAll(/<sitemap>\s*<loc>([^<]+)<\/loc>/g)].map((match) => match[1].trim());
 }
 
-/** サイトマップからキャラページの番号を取り出す（重複除去・昇順） */
+/** サイトマップからキャラページの番号を取り出す（重複除去・昇順）。ボス版などの派生ページは除く */
 export function parseCharacterPageNumbers(xml: string): number[] {
   const numbers = new Set<number>();
   for (const match of xml.matchAll(/<loc>([^<]+)<\/loc>/g)) {
@@ -22,13 +22,16 @@ export function parseCharacterPageNumbers(xml: string): number[] {
   return [...numbers].sort((a, b) => a - b);
 }
 
-/** 形態ごとの図鑑No・正式名（例: 聖炎の女神アグナムート）・進化段階ラベル */
-export type DictionaryForm = { monsterNo: number; name: string; label: string };
+/** 形態ごとの図鑑No・正式名（例: 聖炎の女神アグナムート）・進化段階ラベル・属性 */
+export type DictionaryForm = { monsterNo: number; name: string; label: string; element: string | null };
 /** name はページのベース名（例: アグナムート）。同キャラキーに使う */
 export type DictionaryPage = { pageNo: number; name: string; forms: DictionaryForm[] };
 
-/** 進化段階のラベル。これ以外のリンク（関連キャラ・イベント等）は形態として扱わない */
+/** 進化段階のラベル。これ以外（関連キャラ・イベント等）は形態として扱わない */
 const FORM_LABEL_PATTERN = /^(進化前|進化|神化|獣神化.*|真獣神化.*)$/;
+const KNOWN_ELEMENTS = new Set(["火", "水", "木", "光", "闇"]);
+/** 獣神化系の形態のレア度。図鑑にレア度が載っていないため、形態から決める（前提: 獣神化系は★6） */
+const EVOLVED_FORM_RARITY = 6;
 
 /** 半角中黒「･」などを NFKC で揃え、空白を除く（例: 獣神化･改 → 獣神化・改） */
 export function normalizeFormLabel(label: string): string {
@@ -38,6 +41,22 @@ export function normalizeFormLabel(label: string): string {
 /** アイコンを取る対象か。獣神化・獣神化改・真獣神化などを対象にし、進化前〜神化は対象外 */
 export function isIconTargetForm(label: string): boolean {
   return normalizeFormLabel(label).includes("獣神化");
+}
+
+/** 形態からレア度を推定する。分からない形態は null（無理に埋めない） */
+export function inferRarity(label: string): number | null {
+  return isIconTargetForm(label) ? EVOLVED_FORM_RARITY : null;
+}
+
+function normalizeElement(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const element = value.trim();
+  return KNOWN_ELEMENTS.has(element) ? element : null;
+}
+
+/** 正式名に改行（\r\n）が混ざることがあるので空白1つに畳む */
+function normalizeName(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }
 
 function decodeEntities(text: string): string {
@@ -50,19 +69,48 @@ function decodeEntities(text: string): string {
     .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)));
 }
 
+type EmbeddedVariant = { id?: unknown; name?: unknown; element?: unknown; variant?: unknown };
+type EmbeddedPageProps = { data?: { name_def?: unknown; name?: unknown }; variantData?: unknown };
+
 /**
- * キャラページから名前と形態一覧を読む。読めなければ null。
- * 名前は <title>「◯◯のプロフィール | …」から取る。
+ * ページに埋め込まれた構造化データ（__NEXT_DATA__）から読む。見た目の HTML より変わりにくいので第一候補にする
  */
-export function parseCharacterPage(html: string, pageNo: number): DictionaryPage | null {
+function parseEmbeddedData(html: string, pageNo: number): DictionaryPage | null {
+  const scriptMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!scriptMatch) return null;
+
+  let pageProps: EmbeddedPageProps | undefined;
+  try {
+    pageProps = (JSON.parse(scriptMatch[1]) as { props?: { pageProps?: EmbeddedPageProps } }).props?.pageProps;
+  } catch {
+    return null;
+  }
+  const baseName = pageProps?.data?.name_def ?? pageProps?.data?.name;
+  if (typeof baseName !== "string" || baseName.trim() === "" || !Array.isArray(pageProps?.variantData)) return null;
+
+  const forms: DictionaryForm[] = [];
+  const seen = new Set<number>();
+  for (const variant of pageProps.variantData as EmbeddedVariant[]) {
+    const monsterNo = typeof variant.id === "string" && /^\d+$/.test(variant.id) ? Number(variant.id) : null;
+    if (monsterNo === null || seen.has(monsterNo) || typeof variant.variant !== "string") continue;
+    const label = normalizeFormLabel(variant.variant);
+    if (!FORM_LABEL_PATTERN.test(label)) continue;
+    seen.add(monsterNo);
+    const name = typeof variant.name === "string" ? normalizeName(variant.name) : "";
+    forms.push({ monsterNo, name: name || normalizeName(baseName), label, element: normalizeElement(variant.element) });
+  }
+  return { pageNo, name: normalizeName(baseName), forms };
+}
+
+/** 構造化データが無い場合の予備。形態リンクの画像 alt とラベルから読む（属性は取れない） */
+function parseMarkup(html: string, pageNo: number): DictionaryPage | null {
   const titleMatch = html.match(/<title>\s*([^<]+?)のプロフィール\s*[|｜]/);
   if (!titleMatch) return null;
-  const name = decodeEntities(titleMatch[1]).trim();
+  const name = normalizeName(decodeEntities(titleMatch[1]));
   if (name === "") return null;
 
   const forms: DictionaryForm[] = [];
   const seen = new Set<number>();
-  // 形態リンクは <a href=".../character/{No}/"> の中にアイコン画像（alt が正式名）と <p> のラベルを持つ
   const linkPattern = /<a[^>]*href="\/monsterstrike\/character\/(\d+)\/"[^>]*>([\s\S]*?)<\/a>/g;
   for (const match of html.matchAll(linkPattern)) {
     const monsterNo = Number(match[1]);
@@ -73,13 +121,18 @@ export function parseCharacterPage(html: string, pageNo: number): DictionaryPage
     if (!FORM_LABEL_PATTERN.test(label)) continue;
 
     const altMatch = inner.match(/alt="([^"]*)"/);
-    // 正式名に改行が混ざることがあるので空白1つに畳む。取れなければページのベース名で代用
-    const formName = altMatch ? decodeEntities(altMatch[1]).replace(/\s+/g, " ").trim() : "";
+    const formName = altMatch ? normalizeName(decodeEntities(altMatch[1])) : "";
     seen.add(monsterNo);
-    forms.push({ monsterNo, name: formName || name, label });
+    forms.push({ monsterNo, name: formName || name, label, element: null });
   }
-
   return { pageNo, name, forms };
+}
+
+/** キャラページから名前と形態一覧を読む。読めなければ null */
+export function parseCharacterPage(html: string, pageNo: number): DictionaryPage | null {
+  const embedded = parseEmbeddedData(html, pageNo);
+  if (embedded && embedded.forms.length > 0) return embedded;
+  return parseMarkup(html, pageNo);
 }
 
 export function iconUrl(monsterNo: number): string {
