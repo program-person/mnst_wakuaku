@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# monst-fruit-manager
 
-## Getting Started
+モンスターストライクの「わくわくの実」を、同キャラを複数体持っているときに**被らないように**管理するWebアプリ。
 
-First, run the development server:
+## 何ができるか
 
-```bash
+- 所持個体（同キャラ◯体目）ごとに、英雄の証の枠数・装着している実（種類＋等級）を記録する
+- 実の装着はグリッドから2タップ（種類 → 等級）。同キャラの他個体が既に持っている実は赤く表示される
+- 「被りチェック」で、同キャラ複数体が同じ実を持っている組み合わせを一覧できる
+- 実の種類ごとに「被りNG / 被りOK / 被り推奨」の方針を持ち、ユーザーごとに上書きできる（UIは未実装、`user_fruit_policies`）
+- 付け替え・取り外しは `fruit_events` に履歴が残る
+
+## 技術スタック
+
+- Next.js 16 (App Router, Server Actions, Proxy) + TypeScript + Tailwind CSS v4
+- Supabase (Postgres + Auth + RLS)。クライアントは `@supabase/ssr`
+- デプロイ想定: Vercel
+
+## セットアップ
+
+```powershell
+npm install
+Copy-Item .env.example .env.local
+# .env.local に Supabase の URL と publishable key を記入
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+DBスキーマは `supabase/migrations/` にある。Supabase ダッシュボードの SQL Editor で順に実行するか、Supabase CLI でリンクして `supabase db push` する。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+初回は `/login` の「新規登録」でアカウントを作る。Supabase 側で「Confirm email」が有効なら、確認メールのリンクを開いてからログインする。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## データモデル
 
-## Learn More
+| テーブル | 役割 |
+|---|---|
+| `fruit_types` | 実の種類マスタ。効果範囲（自身 / パーティ）、重複可否、被り方針の既定値 |
+| `fruit_ranks` | 等級マスタ（2級 〜 特級EL） |
+| `characters` | キャラマスタ（全ユーザー共有）。`family_key` で形態違いを同キャラ扱い |
+| `owned_monsters` | 所持個体。`copy_label` で◯体目を区別。枠数・ラック・役割タグ・メモ |
+| `equipped_fruits` | 個体 × スロット × 実 × 等級 |
+| `fruit_events` | 装着・取り外し・置換などの履歴 |
+| `user_settings` | 同キャラ判定モード（family / character） |
+| `user_fruit_policies` | ユーザーごとの被り方針の上書き |
+| `v_fruit_duplicates`（view） | 被り検出。方針を反映済み |
 
-To learn more about Next.js, take a look at the following resources:
+## 設計メモ
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 「被り」は実の種類ごとに意味が違う。パーティ内で最高等級1つしか効かない実（学び・荒稼ぎ・将命削りなど）や絆系は既定で「被りNG」、自身にしか効かない実（友撃・速必殺・ケガ減りなど）は「被りOK」にしている。要検証の解釈なので、マスタの値を直せば挙動が変わる
+- キャラマスタは手入力で育てる。wikiや公式サイトからの一括取得は利用規約の確認が要るため未実装。CSVインポート口を用意する予定
+- Supabase の型は `src/lib/supabase/database.types.ts`。スキーマ変更後は再生成する
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 今後
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] キャラマスタの CSV インポート / エクスポート
+- [ ] 個体の複製（2体目を素早く追加）
+- [ ] 被り方針のユーザー上書きUI、同キャラ判定モードの切り替えUI
+- [ ] PWA 対応（スマホでプレイ中に開く）
+- [ ] スクショからの OCR 入力
