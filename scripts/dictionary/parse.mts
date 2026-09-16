@@ -2,6 +2,12 @@
  * MONST DICTIONARY（dic.xflag.com）のサイトマップとキャラページを読み取る純粋関数。
  * 通信はしない。ページ構造が変わったら、ここだけ直せば済むようにしている。
  */
+import { inferRarity, isEvolvedForm, normalizeFormLabel } from "../../src/lib/monst-forms.ts";
+
+// 形態の判定とレア度の推定は画面側と共通のものを使う
+export { inferRarity, normalizeFormLabel };
+/** アイコンを取る対象の形態か（＝獣神化以上） */
+export const isIconTargetForm = isEvolvedForm;
 
 export const DICTIONARY_ORIGIN = "https://dic.xflag.com";
 const CHARACTER_PATH_PATTERN = /\/monsterstrike\/character\/(\d+)\/?$/;
@@ -30,27 +36,6 @@ export type DictionaryPage = { pageNo: number; name: string; forms: DictionaryFo
 /** 進化段階のラベル。これ以外（関連キャラ・イベント等）は形態として扱わない */
 const FORM_LABEL_PATTERN = /^(進化前|進化|神化|獣神化.*|真獣神化.*)$/;
 const KNOWN_ELEMENTS = new Set(["火", "水", "木", "光", "闇"]);
-/** 獣神化系の形態のレア度。図鑑にレア度が載っていないため、形態から決める（前提: 獣神化系は★6） */
-const EVOLVED_FORM_RARITY = 6;
-
-/** 半角中黒「･」などを NFKC で揃え、空白を除く（例: 獣神化･改 → 獣神化・改） */
-export function normalizeFormLabel(label: string): string {
-  return label.normalize("NFKC").replace(/\s+/g, "");
-}
-
-/**
- * アイコンを取る対象か。獣神化・獣神化改・真獣神化（枝分かれの 1 / 2 を含む）を対象にする。
- * 「獣神化前」「真獣神化前」はその一歩手前の姿なので対象外。進化前〜神化も対象外。
- */
-export function isIconTargetForm(label: string): boolean {
-  const normalized = normalizeFormLabel(label);
-  return normalized.includes("獣神化") && !normalized.endsWith("前");
-}
-
-/** 形態からレア度を推定する。分からない形態は null（無理に埋めない） */
-export function inferRarity(label: string): number | null {
-  return isIconTargetForm(label) ? EVOLVED_FORM_RARITY : null;
-}
 
 function normalizeElement(value: unknown): string | null {
   if (typeof value !== "string") return null;

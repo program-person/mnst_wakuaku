@@ -8,6 +8,11 @@ export default function ImportCharactersPage() {
       <header>
         <Link href="/characters" className="text-sm text-zinc-500 hover:underline">← キャラマスタ</Link>
         <h1 className="text-2xl font-bold">CSV から取り込む</h1>
+        <p className="text-sm text-zinc-500">
+          名前を並べるだけで登録したい場合は
+          <Link href="/characters/bulk" className="mx-1 underline">まとめて登録</Link>
+          を使ってください。
+        </p>
       </header>
 
       <section className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">

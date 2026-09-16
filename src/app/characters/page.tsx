@@ -50,8 +50,11 @@ export default async function CharactersPage({ searchParams }: CharactersPagePro
           <a href="/characters/export" download className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
             CSV エクスポート
           </a>
-          <Link href="/characters/import" className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
+          <Link href="/characters/import" className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
             CSV インポート
+          </Link>
+          <Link href="/characters/bulk" className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
+            ＋ まとめて登録
           </Link>
         </div>
       </header>
