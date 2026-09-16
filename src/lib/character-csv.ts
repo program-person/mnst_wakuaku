@@ -1,4 +1,5 @@
 import { parseCsv, resolveColumns, type RowError } from "@/lib/csv";
+import { canonicalizeFormLabel } from "@/lib/monst-forms";
 
 /** import_characters 関数に渡す1行。別名以外は文字列で渡し、型変換はDB側で行う */
 export type CharacterCsvRow = {
@@ -117,7 +118,7 @@ export function parseCharacterCsv(text: string): ParsedCharacterCsv {
       name,
       name_kana: read("name_kana"),
       family_key: read("family_key"),
-      form: read("form"),
+      form: canonicalizeFormLabel(read("form")),
       element: read("element"),
       rarity,
       series: read("series"),

@@ -2,7 +2,7 @@
  * MONST DICTIONARY（dic.xflag.com）のサイトマップとキャラページを読み取る純粋関数。
  * 通信はしない。ページ構造が変わったら、ここだけ直せば済むようにしている。
  */
-import { inferRarity, isEvolvedForm, normalizeFormLabel } from "../../src/lib/monst-forms.ts";
+import { canonicalizeFormLabel, inferRarity, isEvolvedForm, normalizeFormLabel } from "../../src/lib/monst-forms.ts";
 
 // 形態の判定とレア度の推定は画面側と共通のものを使う
 export { inferRarity, normalizeFormLabel };
@@ -82,7 +82,7 @@ function parseEmbeddedData(html: string, pageNo: number): DictionaryPage | null 
   for (const variant of pageProps.variantData as EmbeddedVariant[]) {
     const monsterNo = typeof variant.id === "string" && /^\d+$/.test(variant.id) ? Number(variant.id) : null;
     if (monsterNo === null || seen.has(monsterNo) || typeof variant.variant !== "string") continue;
-    const label = normalizeFormLabel(variant.variant);
+    const label = canonicalizeFormLabel(variant.variant);
     if (!FORM_LABEL_PATTERN.test(label)) continue;
     seen.add(monsterNo);
     const name = typeof variant.name === "string" ? normalizeName(variant.name) : "";
@@ -106,7 +106,7 @@ function parseMarkup(html: string, pageNo: number): DictionaryPage | null {
     const inner = match[2];
     const labelText = [...inner.matchAll(/>([^<>]+)</g)].map((text) => text[1].trim()).find((text) => text !== "");
     if (!labelText || seen.has(monsterNo)) continue;
-    const label = normalizeFormLabel(decodeEntities(labelText));
+    const label = canonicalizeFormLabel(decodeEntities(labelText));
     if (!FORM_LABEL_PATTERN.test(label)) continue;
 
     const altMatch = inner.match(/alt="([^"]*)"/);

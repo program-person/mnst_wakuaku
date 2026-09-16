@@ -1,6 +1,6 @@
 import { splitAliases, type CharacterCsvRow } from "@/lib/character-csv";
 import { normalizeToken, type RowError } from "@/lib/csv";
-import { inferRarity, normalizeFormLabel } from "@/lib/monst-forms";
+import { canonicalizeFormLabel, inferRarity } from "@/lib/monst-forms";
 
 /**
  * 「まとめて登録」欄の読み取り。1行1キャラで、名前だけでも登録できる。
@@ -46,7 +46,8 @@ export function parseBulkCharacters(text: string, defaultForm: string): ParsedBu
       return;
     }
 
-    const form = normalizeFormLabel(formPart && formPart !== "" ? formPart : defaultForm);
+    // 「獣神化改」「改」などの書き方も図鑑と同じ表記にそろえる
+    const form = canonicalizeFormLabel(formPart && formPart !== "" ? formPart : defaultForm);
 
     const element = elementPart ?? "";
     if (element !== "" && !isElement(element)) {

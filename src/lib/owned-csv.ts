@@ -1,4 +1,5 @@
 import { normalizeToken, parseCsv, resolveColumns, type RowError } from "@/lib/csv";
+import { canonicalizeFormLabel } from "@/lib/monst-forms";
 
 export const MAX_SLOTS = 4;
 const MAX_LUCK = 99;
@@ -191,7 +192,8 @@ export function parseOwnedCsv(
       line,
       monster_no: monsterNo,
       name,
-      form: read("form"),
+      // 表記ゆれで別キャラとして作られないよう、図鑑と同じ表記にそろえてから照合する
+      form: canonicalizeFormLabel(read("form")),
       copy_label: copyLabel,
       hero_seal_slots: heroSealSlots,
       luck,

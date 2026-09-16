@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { nextCopyLabel } from "@/lib/copy-label";
+import { canonicalizeFormLabel } from "@/lib/monst-forms";
 import { listSameCharacterCopies } from "@/lib/queries/owned-monsters";
 import { getSameCharacterMode } from "@/lib/queries/settings";
 import { createClient } from "@/lib/supabase/server";
@@ -46,7 +47,7 @@ export async function createOwnedMonster(formData: FormData): Promise<void> {
       redirect(`/monsters/new?error=${encodeURIComponent("キャラを選ぶか、新規キャラ名を入力してください")}`);
     }
     const familyKey = readText(formData, "new_character_family_key") || name;
-    const form = readText(formData, "new_character_form") || null;
+    const form = canonicalizeFormLabel(readText(formData, "new_character_form")) || null;
     const monsterNo = readInt(formData, "new_character_monster_no");
 
     const { data: created, error: createError } = await supabase

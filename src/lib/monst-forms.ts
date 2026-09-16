@@ -14,6 +14,30 @@ export function normalizeFormLabel(label: string): string {
 }
 
 /**
+ * 入力された形態を図鑑と同じ表記にそろえる。「獣神化改」「獣改」「改」はすべて「獣神化・改」になる。
+ * 枝分かれの 1 / 2 と「〜前」は残す。当てはまらない表記は、記号と空白だけそろえてそのまま返す。
+ */
+export function canonicalizeFormLabel(label: string): string {
+  const normalized = normalizeFormLabel(label);
+  if (normalized === "") return "";
+
+  const suffix = normalized.match(/\d+$/)?.[0] ?? "";
+  const body = suffix === "" ? normalized : normalized.slice(0, -suffix.length);
+  const isBefore = body.endsWith("前") && body !== "進化前";
+  const core = isBefore ? body.slice(0, -1) : body;
+
+  let canonicalCore: string | null = null;
+  if (core.includes("真") && (core.includes("獣") || core === "真")) canonicalCore = "真獣神化";
+  else if (core.includes("獣") && core.includes("改")) canonicalCore = "獣神化・改";
+  else if (core === "改") canonicalCore = "獣神化・改";
+  else if (core.includes("獣")) canonicalCore = "獣神化";
+  else if (core === "神化" || core === "進化" || core === "進化前") canonicalCore = core;
+
+  if (canonicalCore === null) return normalized;
+  return `${canonicalCore}${isBefore ? "前" : ""}${suffix}`;
+}
+
+/**
  * 獣神化以上の形態か。獣神化・獣神化改・真獣神化（枝分かれの 1 / 2 を含む）が対象。
  * 「獣神化前」「真獣神化前」はその一歩手前の姿なので対象外。
  */
