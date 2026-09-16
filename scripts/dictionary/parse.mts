@@ -38,9 +38,13 @@ export function normalizeFormLabel(label: string): string {
   return label.normalize("NFKC").replace(/\s+/g, "");
 }
 
-/** アイコンを取る対象か。獣神化・獣神化改・真獣神化などを対象にし、進化前〜神化は対象外 */
+/**
+ * アイコンを取る対象か。獣神化・獣神化改・真獣神化（枝分かれの 1 / 2 を含む）を対象にする。
+ * 「獣神化前」「真獣神化前」はその一歩手前の姿なので対象外。進化前〜神化も対象外。
+ */
 export function isIconTargetForm(label: string): boolean {
-  return normalizeFormLabel(label).includes("獣神化");
+  const normalized = normalizeFormLabel(label);
+  return normalized.includes("獣神化") && !normalized.endsWith("前");
 }
 
 /** 形態からレア度を推定する。分からない形態は null（無理に埋めない） */
