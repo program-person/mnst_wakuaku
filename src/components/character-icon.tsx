@@ -26,14 +26,16 @@ export function CharacterIcon({ characterId, iconPath, name, element, size = DEF
   if (iconPath) {
     return (
       <Image
-        src={`/character-icons/${characterId}`}
+        // 保存先を URL に含める。アイコンを差し替えると保存先が変わるので、1週間のブラウザキャッシュが自動で切り替わる
+        src={`/character-icons/${characterId}?v=${encodeURIComponent(iconPath)}`}
         alt=""
         width={size}
         height={size}
         // 画像変換サーバーはログイン情報を持たずに取りに行くため失敗する。変換後の画像が共有キャッシュに載るのも避けたい
         unoptimized
         loading="lazy"
-        className="shrink-0 rounded-full"
+        // 図鑑由来は丸、スクショ由来は四角いカード。どちらも自然に見えるよう角丸にとどめる
+        className="shrink-0 rounded-lg object-cover"
         style={{ width: size, height: size }}
       />
     );

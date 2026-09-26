@@ -60,9 +60,11 @@ export type Database = {
           element: string | null
           family_key: string
           form: string | null
+          icon_brightness: number | null
           icon_etag: string | null
           icon_fetched_at: string | null
           icon_path: string | null
+          icon_source: string | null
           id: number
           monster_no: number | null
           name: string
@@ -82,9 +84,11 @@ export type Database = {
           element?: string | null
           family_key: string
           form?: string | null
+          icon_brightness?: number | null
           icon_etag?: string | null
           icon_fetched_at?: string | null
           icon_path?: string | null
+          icon_source?: string | null
           id?: number
           monster_no?: number | null
           name: string
@@ -104,9 +108,11 @@ export type Database = {
           element?: string | null
           family_key?: string
           form?: string | null
+          icon_brightness?: number | null
           icon_etag?: string | null
           icon_fetched_at?: string | null
           icon_path?: string | null
+          icon_source?: string | null
           id?: number
           monster_no?: number | null
           name?: string
@@ -424,9 +430,11 @@ export type Database = {
           element: string | null
           family_key: string
           form: string | null
+          icon_brightness: number | null
           icon_etag: string | null
           icon_fetched_at: string | null
           icon_path: string | null
+          icon_source: string | null
           id: number
           monster_no: number | null
           name: string

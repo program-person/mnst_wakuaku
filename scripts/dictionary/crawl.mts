@@ -282,7 +282,7 @@ async function syncIcon(database: Database, politeFetch: PoliteFetch, monsterNo:
 
   const { error: updateError } = await database
     .from("characters")
-    .update({ icon_path: path, icon_etag: response.headers.get("etag"), icon_fetched_at: now })
+    .update({ icon_path: path, icon_source: "dictionary", icon_etag: response.headers.get("etag"), icon_fetched_at: now })
     .eq("id", character.id);
   if (updateError) throw new Error(`No.${monsterNo} のアイコン情報の更新に失敗しました: ${updateError.message}`);
   return "saved";
