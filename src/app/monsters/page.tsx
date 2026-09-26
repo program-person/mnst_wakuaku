@@ -224,7 +224,7 @@ export default async function MonstersPage({ searchParams }: PageProps<"/monster
             <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
               <h2 className="flex items-center gap-2 font-semibold">
                 <CharacterIcon
-                  monsterNo={copies[0].character.monster_no}
+                  characterId={copies[0].character.id}
                   iconPath={copies[0].character.icon_path}
                   name={copies[0].character.name}
                   element={copies[0].character.element}
@@ -245,7 +245,7 @@ export default async function MonstersPage({ searchParams }: PageProps<"/monster
                 <li key={monster.id}>
                   <Link href={`/monsters/${monster.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900">
                     <CharacterIcon
-                      monsterNo={monster.character.monster_no}
+                      characterId={monster.character.id}
                       iconPath={monster.character.icon_path}
                       name={monster.character.name}
                       element={monster.character.element}

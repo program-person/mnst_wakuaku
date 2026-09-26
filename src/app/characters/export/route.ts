@@ -19,8 +19,8 @@ export async function GET() {
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("characters")
-      .select("monster_no, name, name_kana, family_key, form, element, rarity, series, character_aliases(alias)")
-      .order("monster_no", { ascending: true, nullsFirst: false })
+      .select("dictionary_id, monster_no, name, name_kana, family_key, form, element, rarity, series, character_aliases(alias)")
+      .order("dictionary_id", { ascending: true, nullsFirst: false })
       .order("id")
       .range(offset, offset + PAGE_SIZE - 1);
     if (error) {

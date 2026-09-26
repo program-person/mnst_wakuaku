@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { addCharacterAlias, deleteCharacterAlias } from "./actions";
 
+const DICTIONARY_PAGE_BASE = "https://dic.xflag.com/monsterstrike/character";
+
 export default async function CharacterPage({ params, searchParams }: PageProps<"/characters/[id]">) {
   const { id } = await params;
   const { error: errorParam } = await searchParams;
@@ -13,14 +15,14 @@ export default async function CharacterPage({ params, searchParams }: PageProps<
   const supabase = await createClient();
   const { data: character, error: characterError } = await supabase
     .from("characters")
-    .select("id, monster_no, name, name_kana, family_key, form, element, rarity, series, source, icon_path, character_aliases(id, alias)")
+    .select("id, monster_no, dictionary_id, name, name_kana, family_key, form, element, rarity, series, source, icon_path, character_aliases(id, alias)")
     .eq("id", Number(id))
     .maybeSingle();
   if (characterError) throw new Error(`キャラの取得に失敗しました: ${characterError.message}`);
   if (!character) notFound();
 
   const details: { label: string; value: string | number | null }[] = [
-    { label: "図鑑No", value: character.monster_no },
+    { label: "図鑑No（ゲーム内）", value: character.monster_no },
     { label: "かな", value: character.name_kana },
     { label: "形態", value: character.form },
     { label: "同キャラキー", value: character.family_key },
@@ -36,7 +38,7 @@ export default async function CharacterPage({ params, searchParams }: PageProps<
         <Link href="/characters" className="text-sm text-zinc-500 hover:underline">← キャラマスタ</Link>
         <h1 className="flex items-center gap-3 text-2xl font-bold">
           <CharacterIcon
-            monsterNo={character.monster_no}
+            characterId={character.id}
             iconPath={character.icon_path}
             name={character.name}
             element={character.element}
@@ -53,6 +55,21 @@ export default async function CharacterPage({ params, searchParams }: PageProps<
             <dd>{detail.value ?? "-"}</dd>
           </div>
         ))}
+        <dt className="text-zinc-500">図鑑サイト</dt>
+        <dd>
+          {character.dictionary_id !== null ? (
+            <a
+              href={`${DICTIONARY_PAGE_BASE}/${character.dictionary_id}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              MONST DICTIONARY で見る（番号 {character.dictionary_id}）
+            </a>
+          ) : (
+            "-"
+          )}
+        </dd>
       </dl>
 
       <section className="space-y-3">

@@ -1,7 +1,8 @@
 import Image from "next/image";
 
 type CharacterIconProps = {
-  monsterNo: number | null;
+  /** キャラマスタの内部ID。アイコンの配信経路はこの ID で引く（図鑑No は空のキャラもあるため） */
+  characterId: number;
   iconPath: string | null;
   name: string;
   element: string | null;
@@ -21,11 +22,11 @@ const ELEMENT_COLORS: Record<string, string> = {
 };
 const UNKNOWN_ELEMENT_COLOR = "bg-zinc-400 text-white dark:bg-zinc-600";
 
-export function CharacterIcon({ monsterNo, iconPath, name, element, size = DEFAULT_SIZE }: CharacterIconProps) {
-  if (iconPath && monsterNo !== null) {
+export function CharacterIcon({ characterId, iconPath, name, element, size = DEFAULT_SIZE }: CharacterIconProps) {
+  if (iconPath) {
     return (
       <Image
-        src={`/character-icons/${monsterNo}`}
+        src={`/character-icons/${characterId}`}
         alt=""
         width={size}
         height={size}

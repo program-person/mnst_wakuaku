@@ -97,7 +97,7 @@ export default async function CharactersPage({ searchParams }: CharactersPagePro
                   <td className="px-3 py-2 font-medium">
                     <Link href={`/characters/${character.id}`} className="inline-flex items-center gap-2 hover:underline">
                       <CharacterIcon
-                        monsterNo={character.monster_no}
+                        characterId={character.id}
                         iconPath={character.icon_path}
                         name={character.name}
                         element={character.element}

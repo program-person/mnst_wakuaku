@@ -3,6 +3,8 @@ import { canonicalizeFormLabel } from "@/lib/monst-forms";
 
 /** import_characters 関数に渡す1行。別名以外は文字列で渡し、型変換はDB側で行う */
 export type CharacterCsvRow = {
+  /** MONST DICTIONARY のページ番号。ゲーム内の図鑑No とは別物 */
+  dictionary_id: string;
   monster_no: string;
   name: string;
   name_kana: string;
@@ -15,6 +17,7 @@ export type CharacterCsvRow = {
 };
 
 export const CHARACTER_CSV_COLUMNS = [
+  "dictionary_id",
   "monster_no",
   "name",
   "name_kana",
@@ -44,6 +47,7 @@ export function splitAliases(cell: string): string[] {
 
 /** 受け付けるヘッダ名（英語の正式名と日本語の別名）。比較は正規化して行う */
 const HEADER_ALIASES: Record<keyof CharacterCsvRow, readonly string[]> = {
+  dictionary_id: ["dictionary_id", "図鑑サイト番号", "サイト番号", "dictionary"],
   monster_no: ["monster_no", "図鑑no", "no", "no.", "番号", "図鑑番号"],
   name: ["name", "名前", "キャラ名", "キャラクター名", "モンスター名"],
   name_kana: ["name_kana", "kana", "かな", "よみ", "読み", "ふりがな"],
@@ -113,7 +117,14 @@ export function parseCharacterCsv(text: string): ParsedCharacterCsv {
       continue;
     }
 
+    const dictionaryId = read("dictionary_id").normalize("NFKC");
+    if (dictionaryId !== "" && !/^\d+$/.test(dictionaryId)) {
+      errors.push({ line, message: `図鑑サイト番号が数値ではありません: ${dictionaryId}` });
+      continue;
+    }
+
     rows.push({
+      dictionary_id: dictionaryId,
       monster_no: monsterNo,
       name,
       name_kana: read("name_kana"),

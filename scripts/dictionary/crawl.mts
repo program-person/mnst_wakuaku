@@ -1,5 +1,6 @@
 /**
- * MONST DICTIONARY から、獣神化以上の形態のアイコンとキャラ情報（図鑑No・名前・形態・属性・レア度・同キャラキー）を取り込む。
+ * MONST DICTIONARY から、獣神化以上の形態のアイコンとキャラ情報（図鑑サイト番号・名前・形態・属性・レア度・同キャラキー）を取り込む。
+ * 図鑑サイトのページ番号はゲーム内の図鑑No とは別物なので、characters.dictionary_id に入れる（monster_no には入れない）。
  * 個人利用のため、画像は Supabase の非公開バケットに保存する。
  *
  * 実行（リポジトリ直下で）:
@@ -207,18 +208,18 @@ async function registerCharacters(
   forms: DictionaryForm[],
   ownerUserId: string,
 ): Promise<RegisterResult> {
-  const monsterNumbers = forms.map((form) => form.monsterNo);
+  const dictionaryIds = forms.map((form) => form.monsterNo);
   const { data: existing, error } = await database
     .from("characters")
-    .select("id, monster_no, element, rarity")
-    .in("monster_no", monsterNumbers);
+    .select("id, dictionary_id, element, rarity")
+    .in("dictionary_id", dictionaryIds);
   if (error) throw new Error(`キャラマスタの確認に失敗しました: ${error.message}`);
 
-  const existingByNumber = new Map(existing.map((row) => [row.monster_no as number, row]));
+  const existingByNumber = new Map(existing.map((row) => [row.dictionary_id as number, row]));
   const rows = forms
     .filter((form) => !existingByNumber.has(form.monsterNo))
     .map((form) => ({
-      monster_no: form.monsterNo,
+      dictionary_id: form.monsterNo,
       name: form.name,
       form: form.label,
       family_key: page.name,
@@ -255,9 +256,9 @@ async function syncIcon(database: Database, politeFetch: PoliteFetch, monsterNo:
   const { data: character, error } = await database
     .from("characters")
     .select("id, icon_etag")
-    .eq("monster_no", monsterNo)
+    .eq("dictionary_id", monsterNo)
     .single();
-  if (error) throw new Error(`No.${monsterNo} のキャラが見つかりません: ${error.message}`);
+  if (error) throw new Error(`図鑑サイト番号 ${monsterNo} のキャラが見つかりません: ${error.message}`);
 
   // 前回の ETag を送り、変わっていなければ 304 で本体を受け取らない（通信量を減らす）
   const headers: Record<string, string> = character.icon_etag ? { "If-None-Match": character.icon_etag } : {};
@@ -272,6 +273,7 @@ async function syncIcon(database: Database, politeFetch: PoliteFetch, monsterNo:
   if (!response.ok) throw new Error(`No.${monsterNo} のアイコン取得に失敗しました（HTTP ${response.status}）`);
 
   const bytes = new Uint8Array(await response.arrayBuffer());
+  // 保存先の番号は図鑑サイトの番号（既存ファイルとの互換のためフォルダ名は monster/ のまま）
   const path = `monster/${monsterNo}.png`;
   const { error: uploadError } = await database.storage
     .from(ICON_BUCKET)

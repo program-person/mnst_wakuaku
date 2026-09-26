@@ -17,6 +17,7 @@ export default function ImportCharactersPage() {
 
       <section className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
         <p>1行目はヘッダ。列の順番は自由で、英語名と日本語名のどちらでも認識します。</p>
+        <p>ゲーム内の図鑑Noをまとめて入れたいときは、エクスポートしたCSVの図鑑No列を埋めて取り込み直してください。図鑑サイト番号で同じキャラに当てて、図鑑Noだけ書き込みます。</p>
         <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
           <table className="w-full text-xs">
             <thead className="bg-zinc-50 dark:bg-zinc-900">
@@ -28,7 +29,8 @@ export default function ImportCharactersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              <tr><td className="px-2 py-1">monster_no</td><td className="px-2 py-1">図鑑No</td><td className="px-2 py-1">-</td><td className="px-2 py-1">あれば同じNoの行を更新（重複登録されない）</td></tr>
+              <tr><td className="px-2 py-1">dictionary_id</td><td className="px-2 py-1">図鑑サイト番号</td><td className="px-2 py-1">-</td><td className="px-2 py-1">MONST DICTIONARY のページ番号。あれば最優先でそのキャラを更新する（ゲーム内の図鑑Noとは別物）</td></tr>
+              <tr><td className="px-2 py-1">monster_no</td><td className="px-2 py-1">図鑑No</td><td className="px-2 py-1">-</td><td className="px-2 py-1">ゲーム内の図鑑No。あれば同じNoの行を更新（重複登録されない）</td></tr>
               <tr><td className="px-2 py-1">name</td><td className="px-2 py-1">名前 / キャラ名</td><td className="px-2 py-1">✓</td><td className="px-2 py-1"></td></tr>
               <tr><td className="px-2 py-1">name_kana</td><td className="px-2 py-1">かな</td><td className="px-2 py-1">-</td><td className="px-2 py-1">検索用</td></tr>
               <tr><td className="px-2 py-1">family_key</td><td className="px-2 py-1">同キャラキー</td><td className="px-2 py-1">-</td><td className="px-2 py-1">空なら名前と同じ。形態違いを同一視するキー</td></tr>

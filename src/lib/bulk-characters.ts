@@ -71,6 +71,7 @@ export function parseBulkCharacters(text: string, defaultForm: string): ParsedBu
     seen.add(key);
 
     rows.push({
+      dictionary_id: "",
       monster_no: "",
       name,
       name_kana: "",

@@ -45,7 +45,7 @@ export default async function OwnedMonsterPage({ params }: PageProps<"/monsters/
           <Link href="/monsters" className="text-sm text-zinc-500 hover:underline">← 所持キャラ</Link>
           <h1 className="flex items-center gap-3 text-2xl font-bold">
             <CharacterIcon
-              monsterNo={monster.character.monster_no}
+              characterId={monster.character.id}
               iconPath={monster.character.icon_path}
               name={monster.character.name}
               element={monster.character.element}

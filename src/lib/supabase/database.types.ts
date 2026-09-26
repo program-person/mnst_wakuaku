@@ -56,6 +56,7 @@ export type Database = {
           attributes: Json
           created_at: string
           created_by: string | null
+          dictionary_id: number | null
           element: string | null
           family_key: string
           form: string | null
@@ -77,6 +78,7 @@ export type Database = {
           attributes?: Json
           created_at?: string
           created_by?: string | null
+          dictionary_id?: number | null
           element?: string | null
           family_key: string
           form?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           attributes?: Json
           created_at?: string
           created_by?: string | null
+          dictionary_id?: number | null
           element?: string | null
           family_key?: string
           form?: string | null
@@ -417,6 +420,7 @@ export type Database = {
           attributes: Json
           created_at: string
           created_by: string | null
+          dictionary_id: number | null
           element: string | null
           family_key: string
           form: string | null

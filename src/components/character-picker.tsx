@@ -58,7 +58,7 @@ export function CharacterPicker() {
         <input type="hidden" name="character_id" value={selected.id} />
         <span className="flex items-center gap-2">
           <CharacterIcon
-            monsterNo={selected.monster_no}
+            characterId={selected.id}
             iconPath={selected.icon_path}
             name={selected.name}
             element={selected.element}
@@ -101,7 +101,7 @@ export function CharacterPicker() {
               >
                 <span className="flex items-center gap-2">
                   <CharacterIcon
-                    monsterNo={character.monster_no}
+                    characterId={character.id}
                     iconPath={character.icon_path}
                     name={character.name}
                     element={character.element}
